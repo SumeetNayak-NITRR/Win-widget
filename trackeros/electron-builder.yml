@@ -1,0 +1,15 @@
+appId: com.sumeet.trackeros
+productName: TrackerOS
+directories:
+  buildResources: assets
+  output: release
+files:
+  - dist/**/*
+  - electron/**/*
+  - node_modules/**/*
+win:
+  target: nsis
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

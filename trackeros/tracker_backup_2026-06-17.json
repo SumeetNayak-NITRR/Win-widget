@@ -1,0 +1,383 @@
+{
+  "templates": {
+    "Weekday": [
+      {
+        "id": "r1",
+        "label": "Morning Run + Stretch",
+        "start": "06:00",
+        "end": "06:45",
+        "category": "fitness"
+      },
+      {
+        "id": "r2",
+        "label": "Breakfast + Oats",
+        "start": "07:00",
+        "end": "07:30",
+        "category": "health"
+      },
+      {
+        "id": "r3",
+        "label": "DSA Practice · A2Z",
+        "start": "09:00",
+        "end": "11:00",
+        "category": "study"
+      },
+      {
+        "id": "r4",
+        "label": "Mining Engg. Study",
+        "start": "11:30",
+        "end": "13:00",
+        "category": "study"
+      },
+      {
+        "id": "r5",
+        "label": "Lunch + Rest",
+        "start": "13:00",
+        "end": "14:00",
+        "category": "health"
+      },
+      {
+        "id": "r6",
+        "label": "English Communication",
+        "start": "14:30",
+        "end": "15:30",
+        "category": "skill"
+      },
+      {
+        "id": "r7",
+        "label": "Football Practice",
+        "start": "16:00",
+        "end": "17:30",
+        "category": "sport"
+      },
+      {
+        "id": "r8",
+        "label": "Evening Cooldown",
+        "start": "17:30",
+        "end": "18:00",
+        "category": "fitness"
+      },
+      {
+        "id": "r9",
+        "label": "Dinner + Downtime",
+        "start": "19:30",
+        "end": "20:30",
+        "category": "health"
+      },
+      {
+        "id": "r10",
+        "label": "LifeOS / Dev Work",
+        "start": "21:00",
+        "end": "22:30",
+        "category": "dev"
+      },
+      {
+        "id": "r11",
+        "label": "Sleep Prep",
+        "start": "23:00",
+        "end": "23:30",
+        "category": "health"
+      }
+    ],
+    "Weekend": [
+      {
+        "id": "w1",
+        "label": "Late Wakeup + Rest",
+        "start": "08:00",
+        "end": "09:30",
+        "category": "health"
+      },
+      {
+        "id": "w2",
+        "label": "Heavy Breakfast",
+        "start": "09:30",
+        "end": "10:30",
+        "category": "health"
+      },
+      {
+        "id": "w3",
+        "label": "Weekly Review / Planning",
+        "start": "11:00",
+        "end": "12:30",
+        "category": "dev"
+      },
+      {
+        "id": "w4",
+        "label": "Lunch + Movie",
+        "start": "13:00",
+        "end": "15:30",
+        "category": "health"
+      },
+      {
+        "id": "w5",
+        "label": "Football / Outdoor",
+        "start": "16:00",
+        "end": "18:00",
+        "category": "sport"
+      },
+      {
+        "id": "w6",
+        "label": "Dinner Out",
+        "start": "19:30",
+        "end": "21:30",
+        "category": "health"
+      },
+      {
+        "id": "w7",
+        "label": "Downtime",
+        "start": "22:00",
+        "end": "23:30",
+        "category": "health"
+      }
+    ],
+    "Other": []
+  },
+  "tasks": {
+    "2026-06-16": [
+      {
+        "id": "t_1781629560010_5nncc",
+        "text": "11:00 go to bed",
+        "dueTime": "11:00",
+        "done": false,
+        "createdAt": "2026-06-16T17:06:00.010Z",
+        "completedAt": null
+      },
+      {
+        "id": "8200bc2d-7fe5-4d38-acba-899623a55951",
+        "label": "da",
+        "done": false,
+        "completedAt": null
+      },
+      {
+        "id": "t_1781621517165_n9xbl",
+        "text": "Wake up at 8pm",
+        "done": true,
+        "createdAt": "2026-06-16T14:51:57.165Z",
+        "completedAt": "2026-06-16T16:39:57.053Z"
+      }
+    ],
+    "2026-06-17": [
+      {
+        "id": "t_1781704121147_53fgy",
+        "text": "ttt",
+        "dueTime": null,
+        "done": false,
+        "createdAt": "2026-06-17T13:48:41.147Z",
+        "completedAt": null
+      },
+      {
+        "id": "t_1781704032982_n7qoa",
+        "text": "hk",
+        "dueTime": null,
+        "done": true,
+        "createdAt": "2026-06-17T13:47:12.982Z",
+        "completedAt": "2026-06-17T13:48:35.670Z"
+      }
+    ]
+  },
+  "logs": {
+    "2026-06-16": {
+      "tasksTotal": 2,
+      "tasksDone": 1,
+      "blocksTotal": 6,
+      "blocksDone": 1
+    },
+    "2026-06-17": {
+      "tasksTotal": 2,
+      "tasksDone": 1,
+      "blocksTotal": 7,
+      "blocksDone": 0,
+      "categoryTime": {}
+    }
+  },
+  "settings": {
+    "hotkey": "Ctrl+Shift+W",
+    "windowX": 235,
+    "windowY": 346,
+    "miniBounds": {
+      "x": 140,
+      "y": 908,
+      "width": 152,
+      "height": 61
+    },
+    "lastSetupDate": "2026-06-17",
+    "streak": 0,
+    "openAtLogin": true,
+    "soundAlerts": true
+  },
+  "routine": [
+    {
+      "id": "r1",
+      "label": "Morning Run + Stretch",
+      "start": "06:00",
+      "end": "06:45",
+      "category": "fitness"
+    },
+    {
+      "id": "r2",
+      "label": "Breakfast + Oats",
+      "start": "07:00",
+      "end": "07:30",
+      "category": "health"
+    },
+    {
+      "id": "r3",
+      "label": "DSA Practice · A2Z",
+      "start": "09:00",
+      "end": "11:00",
+      "category": "study"
+    },
+    {
+      "id": "r4",
+      "label": "Mining Engg. Study",
+      "start": "11:30",
+      "end": "13:00",
+      "category": "study"
+    },
+    {
+      "id": "r5",
+      "label": "Lunch + Rest",
+      "start": "13:00",
+      "end": "14:00",
+      "category": "health"
+    },
+    {
+      "id": "r6",
+      "label": "English Communication",
+      "start": "14:30",
+      "end": "15:30",
+      "category": "skill"
+    },
+    {
+      "id": "r7",
+      "label": "Football Practice",
+      "start": "16:00",
+      "end": "17:30",
+      "category": "sport"
+    },
+    {
+      "id": "r8",
+      "label": "Evening Cooldown",
+      "start": "17:30",
+      "end": "18:00",
+      "category": "fitness"
+    },
+    {
+      "id": "r9",
+      "label": "Dinner + Downtime",
+      "start": "19:30",
+      "end": "20:30",
+      "category": "health"
+    },
+    {
+      "id": "r10",
+      "label": "LifeOS / Dev Work",
+      "start": "21:00",
+      "end": "22:30",
+      "category": "dev"
+    },
+    {
+      "id": "r11",
+      "label": "Sleep Prep",
+      "start": "23:00",
+      "end": "23:30",
+      "category": "health"
+    }
+  ],
+  "routine_2026-06-16": [
+    {
+      "id": "w1",
+      "label": "Late Wakeup + Rest",
+      "start": "08:00",
+      "end": "09:30",
+      "category": "health"
+    },
+    {
+      "id": "w2",
+      "label": "Heavy Breakfast",
+      "start": "09:30",
+      "end": "10:30",
+      "category": "health"
+    },
+    {
+      "id": "w3",
+      "label": "Weekly Review / Planning",
+      "start": "11:00",
+      "end": "12:30",
+      "category": "dev"
+    },
+    {
+      "id": "w4",
+      "label": "Lunch + Movie",
+      "start": "13:00",
+      "end": "15:30",
+      "category": "health"
+    },
+    {
+      "id": "w6",
+      "label": "Dinner Out",
+      "start": "19:30",
+      "end": "21:30",
+      "category": "health"
+    },
+    {
+      "id": "w7",
+      "label": "Downtime",
+      "start": "22:00",
+      "end": "23:30",
+      "category": "health",
+      "status": "done"
+    }
+  ],
+  "routine_2026-06-17": [
+    {
+      "id": "w1",
+      "label": "Late Wakeup + Rest",
+      "start": "08:00",
+      "end": "09:30",
+      "category": "health"
+    },
+    {
+      "id": "w2",
+      "label": "Heavy Breakfast",
+      "start": "09:30",
+      "end": "10:30",
+      "category": "health"
+    },
+    {
+      "id": "w3",
+      "label": "Weekly Review / Planning",
+      "start": "11:00",
+      "end": "12:30",
+      "category": "dev"
+    },
+    {
+      "id": "w4",
+      "label": "Lunch + Movie",
+      "start": "13:00",
+      "end": "15:30",
+      "category": "health"
+    },
+    {
+      "id": "w5",
+      "label": "Football / Outdoor",
+      "start": "16:00",
+      "end": "18:00",
+      "category": "sport"
+    },
+    {
+      "id": "w6",
+      "label": "Dinner Out",
+      "start": "19:30",
+      "end": "21:30",
+      "category": "health"
+    },
+    {
+      "id": "w7",
+      "label": "Downtime",
+      "start": "22:00",
+      "end": "23:30",
+      "category": "health"
+    }
+  ]
+}
