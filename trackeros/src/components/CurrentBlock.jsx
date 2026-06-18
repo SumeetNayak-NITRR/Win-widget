@@ -1,7 +1,7 @@
 import React from 'react';
 import { fmtTime, minsLeft, blockProgress, toMin } from '../utils/time';
 import Pomodoro from './Pomodoro';
-import DirectionLayer from './DirectionLayer';
+import GoalCard from './GoalCard';
 
 export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) {
   if (!block) {
@@ -60,7 +60,16 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
         {fmtTime(block.start)} – {fmtTime(block.end)}
       </div>
 
-      <DirectionLayer embedded blockLabel={block.label} blockPreset={{ direction: block.direction, focus: block.focus, todayTarget: block.todayTarget }} />
+      {block.topic && (
+        <div className="font-sans text-[11.5px] text-[#e6e6e6] bg-[rgba(255,255,255,0.04)] px-2 py-1.5 rounded-[4px] mb-2 border border-[rgba(255,255,255,0.03)] flex flex-col gap-1.5">
+          <div className="flex items-start gap-1.5">
+            <span className="text-[10px] mt-[1px]">📌</span>
+            <span className="leading-snug">{block.topic}</span>
+          </div>
+        </div>
+      )}
+
+      <GoalCard embedded block={block} />
 
       {/* Progress bar */}
       <div style={{

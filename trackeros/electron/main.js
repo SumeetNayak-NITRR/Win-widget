@@ -445,16 +445,10 @@ function registerIPC() {
   ipcMain.handle('get-setup-state', () => storeGet('settings.lastSetupDate', null));
   ipcMain.handle('get-streak', () => storeGet('settings.streak', 0));
   
-  ipcMain.handle('get-direction-layer', (_, blockLabel) => {
-    const layers = storeGet('directionLayers') || {};
-    return layers[blockLabel] || null;
-  });
-  ipcMain.handle('save-direction-layer', (_, blockLabel, data) => {
-    const layers = storeGet('directionLayers') || {};
-    layers[blockLabel] = data;
-    storeSet('directionLayers', layers);
-    return true;
-  });
+  ipcMain.handle('get-goals', () => storeGet('goals', []));
+  ipcMain.handle('save-goals', (_, data) => { storeSet('goals', data); return true; });
+  ipcMain.handle('get-review-week', () => storeGet('settings.lastReviewWeek', null));
+  ipcMain.handle('set-review-week', (_, weekStr) => { storeSet('settings.lastReviewWeek', weekStr); return true; });
 
   // Schedule config (day-of-week → template name)
   ipcMain.handle('get-schedule-config', () => storeGet('scheduleConfig', {}));
@@ -552,8 +546,8 @@ app.whenReady().then(async () => {
       templates: DEFAULT_TEMPLATES,
       tasks: {},
       logs: {},
-      settings: { hotkey: 'Ctrl+Shift+W', windowX: null, windowY: null, lastSetupDate: null, openAtLogin: true, soundAlerts: true },
-      directionLayers: {},
+      settings: { hotkey: 'Ctrl+Shift+W', windowX: null, windowY: null, lastSetupDate: null, openAtLogin: true, soundAlerts: true, lastReviewWeek: null },
+      goals: [],
       scheduleConfig: { Mon: 'Weekday', Tue: 'Weekday', Wed: 'Weekday', Thu: 'Weekday', Fri: 'Weekday', Sat: 'Weekend', Sun: 'Weekend' },
       categories: [
         { id: 'study',   label: 'Study',   color: '#4d8eff', emoji: '📚' },

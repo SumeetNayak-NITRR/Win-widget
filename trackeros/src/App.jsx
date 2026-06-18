@@ -57,6 +57,13 @@ function WidgetRoot() {
   const [ambientTrack, setAmbientTrack] = useState('none');
   const [updateReady, setUpdateReady] = useState(false);
 
+  // Review & Goals data for WeeklyReview
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
+  const [goals, setGoals] = useState([]);
+  const [logs, setLogs] = useState({});
+  const [templates, setTemplates] = useState({});
+  const [categories, setCategories] = useState([]);
+
   const [currentDateKey, setCurrentDateKey] = useState(() => {
     return fmtDateKey(new Date());
   });
@@ -74,10 +81,32 @@ function WidgetRoot() {
       const c = await window.tracker?.getColors?.();
       if (c) setColors(c);
 
+      const [g, cats] = await Promise.all([
+        window.tracker?.getGoals?.(),
+        window.tracker?.getCategories?.()
+      ]);
+      if (g) setGoals(g);
+      if (cats) setCategories(cats);
+
       const isMini = await window.tracker?.isMiniMode?.();
       if (isMini) {
         setViewState('mini');
         return;
+      }
+
+      // Check if Weekly Review is needed
+      const lastReviewWeek = await window.tracker?.getReviewWeek?.();
+      const currentWeek = getISOWeekStr(today);
+      if (lastReviewWeek !== currentWeek && (today.getDay() === 0 || today.getDay() === 1)) {
+        // Fetch necessary data for review
+        const [l, t] = await Promise.all([
+          window.tracker?.getLogs?.(),
+          window.tracker?.getTemplates?.()
+        ]);
+        setLogs(l || {});
+        setTemplates(t || {});
+        setShowWeeklyReview(true);
+        // We do NOT return here, we still set viewState so when review closes it knows where to go
       }
 
       const lastSetup = await window.tracker?.getSetupState?.();
@@ -255,10 +284,52 @@ function WidgetRoot() {
     const today = new Date();
     const dateKey = fmtDateKey(today);
     await window.tracker?.saveDailyRoutine?.(dateKey, updated);
+
+    if (status === 'done') {
+      const block = routine.find(b => b.id === id);
+      if (block?.linkedOutcomeId) {
+        const goalsData = await window.tracker?.getGoals?.() || [];
+        let modified = false;
+        const newGoals = goalsData.map(g => {
+          if (g.id === block.linkedOutcomeId && g.autoIncrementOnDone) {
+            modified = true;
+            const current = Number(g.currentValue) || 0;
+            return {
+              ...g,
+              currentValue: current + 1,
+              history: [...(g.history || []), { date: dateKey, value: current + 1 }]
+            };
+          }
+          return g;
+        });
+        if (modified) {
+          setGoals(newGoals);
+          await window.tracker?.saveGoals?.(newGoals);
+        }
+      }
+    }
+  };
+
+  const handleCompleteReview = () => {
+    setShowWeeklyReview(false);
+    window.tracker?.setReviewWeek?.(getISOWeekStr(new Date()));
   };
 
   if (viewState === 'loading') {
     return <div className="flex h-full items-center justify-center text-[var(--text-disabled)] font-mono text-[10px]">Loading TrackerOS...</div>;
+  }
+
+  if (showWeeklyReview) {
+    return (
+      <WeeklyReview 
+        logs={logs} 
+        goals={goals} 
+        templates={templates} 
+        onSaveGoals={(g) => window.tracker?.saveGoals?.(g)}
+        onComplete={handleCompleteReview} 
+        onSkip={() => setShowWeeklyReview(false)} 
+      />
+    );
   }
 
   if (viewState === 'setup') {
@@ -278,8 +349,13 @@ function WidgetRoot() {
     );
   }
 
+  const handleUpdateDailyRoutine = async (updatedBlocks) => {
+    setRoutine(updatedBlocks);
+    await window.tracker?.saveDailyRoutine?.(fmtDateKey(new Date()), updatedBlocks);
+  };
+
   if (viewState === 'timetable') {
-    return <Timetable routine={routine} onBack={() => setViewState('full')} />;
+    return <Timetable routine={routine} onUpdateRoutine={handleUpdateDailyRoutine} categories={categories} goals={goals} onBack={() => setViewState('full')} />;
   }
 
   if (viewState === 'mini') {

@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { fmtDateKey } from '../utils/time';
+import WeeklyReview from './WeeklyReview';
+import GoalManager from './GoalManager';
 
 function getWeekDays() {
   const today = new Date();
   const todayKey = fmtDateKey(today);
   const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  const monday = new Date(today);
+  const sunday = new Date(today);
   const dow = today.getDay();
-  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+  sunday.setDate(today.getDate() - dow);
 
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
     const key = fmtDateKey(d);
     return { key, name: dayNames[d.getDay()], isToday: key === todayKey, isFuture: d > today && key !== todayKey };
   });
@@ -24,17 +27,24 @@ export default function StatsPanel() {
   const [logs, setLogs] = useState({});
   const [weekActivity, setWeekActivity] = useState([]);
   const [monthActivity, setMonthActivity] = useState({});
+  const [goals, setGoals] = useState([]);
+  const [templates, setTemplates] = useState({});
+  const [showReview, setShowReview] = useState(false);
   const weekDays = getWeekDays();
   const todayKey = fmtDateKey(new Date());
 
   const load = React.useCallback(async () => {
     try {
-      const [tasks, logData] = await Promise.all([
+      const [tasks, logData, goalsData, templatesData] = await Promise.all([
         window.tracker.getTasks(todayKey),
         window.tracker.getLogs(),
+        window.tracker.getGoals(),
+        window.tracker.getTemplates(),
       ]);
       setTodayTasks(tasks || []);
       setLogs(logData || {});
+      setGoals(goalsData || []);
+      setTemplates(templatesData || {});
 
       // Load last 28 days of activity for heatmap and donut chart
       const activityPromises = [];
@@ -126,7 +136,7 @@ export default function StatsPanel() {
         padding: '0 14px', flexShrink: 0,
         background: 'rgba(255,255,255,0.01)',
       }}>
-        {['today', 'week'].map(tab => (
+        {['today', 'week', 'goals'].map(tab => (
           <button key={tab} id={`tab-${tab}`} onClick={() => setActiveTab(tab)}
             className="font-mono uppercase"
             style={{
@@ -143,15 +153,31 @@ export default function StatsPanel() {
             {tab}
           </button>
         ))}
+        <div style={{ flex: 1 }} />
+        <button onClick={() => setShowReview(true)}
+          className="font-mono uppercase text-[#4d8eff] hover:text-white transition-colors"
+          style={{ fontSize: '9px', letterSpacing: '0.1em', padding: '9px 0', background: 'transparent', border: 'none', cursor: 'pointer' }}
+        >
+          Review
+        </button>
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
-        {activeTab === 'today'
-          ? <TodayTab done={done} total={total} pct={pct} tasks={todayTasks} />
-          : <WeekTab weekDays={weekDays} logs={logs} todayKey={todayKey} todayDone={done} todayTotal={total} weekActivity={weekActivity} monthActivity={monthActivity} />
-        }
+        {activeTab === 'today' && <TodayTab done={done} total={total} pct={pct} tasks={todayTasks} />}
+        {activeTab === 'week'  && <WeekTab weekDays={weekDays} logs={logs} todayKey={todayKey} todayDone={done} todayTotal={total} weekActivity={weekActivity} monthActivity={monthActivity} />}
+        {activeTab === 'goals' && <GoalManager goals={goals} setGoals={(g) => { setGoals(g); window.tracker?.saveGoals?.(g); }} />}
       </div>
+      {showReview && (
+        <WeeklyReview
+          logs={logs}
+          goals={goals}
+          templates={templates}
+          onComplete={() => setShowReview(false)}
+          onSkip={() => setShowReview(false)}
+          onSaveGoals={(g) => window.tracker?.saveGoals?.(g)}
+        />
+      )}
     </div>
   );
 }
@@ -254,6 +280,18 @@ function WeekTab({ weekDays, logs, todayKey, todayDone, todayTotal, weekActivity
     heatmapDays.push({ key, pct, isToday: key === todayKey, doneCount });
   }
 
+  // BarChart Data: last 14 days
+  const barData = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const key = fmtDateKey(d);
+    const dayActs = monthActivity[key] || [];
+    const mins = dayActs.filter(a => a.status === 'done').reduce((sum, a) => sum + (a.duration_min || 0), 0);
+    const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+    barData.push({ date: key, label, hours: Number((mins / 60).toFixed(1)) });
+  }
+
   // Categories Donut Data — prefer activity log, fall back to logs.categoryTime
   const catTime = {};
   if (weekActivity && weekActivity.length > 0) {
@@ -285,7 +323,25 @@ function WeekTab({ weekDays, logs, todayKey, todayDone, todayTotal, weekActivity
     summary = `You crushed your ${topCat.toUpperCase()} blocks this week (${hrs}h logged). Keep up the great work!`;
   }
 
-  let cumulativePct = 0;
+  const pieData = catArray.map(([cat, mins]) => ({
+    name: cat,
+    value: Number((mins / 60).toFixed(1)),
+    color: colors[cat] || '#888'
+  }));
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', color: '#fff', backdropFilter: 'blur(10px)' }}>
+          <div style={{ color: 'var(--text-disabled)', marginBottom: '4px' }}>{label || payload[0].name}</div>
+          <div style={{ color: payload[0].payload.color || '#4d8eff', fontWeight: 'bold' }}>
+            {payload[0].value} hours
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -317,6 +373,23 @@ function WeekTab({ weekDays, logs, todayKey, todayDone, todayTotal, weekActivity
         )}
       </div>
 
+      {/* Bar Chart */}
+      <div>
+        <div className="font-mono uppercase mb-2" style={{ fontSize: '9px', color: 'var(--text-disabled)', letterSpacing: '0.15em' }}>
+          Time Logged (Last 14 Days)
+        </div>
+        <div style={{ height: '120px', width: '100%', marginLeft: '-10px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={barData}>
+              <XAxis dataKey="label" stroke="var(--text-disabled)" fontSize={9} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--text-disabled)" fontSize={9} tickLine={false} axisLine={false} tickCount={4} />
+              <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+              <Bar dataKey="hours" fill="#4d8eff" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Donut Chart */}
       <div>
         <div className="font-mono uppercase mb-2" style={{ fontSize: '9px', color: 'var(--text-disabled)', letterSpacing: '0.15em' }}>
@@ -326,23 +399,25 @@ function WeekTab({ weekDays, logs, todayKey, todayDone, todayTotal, weekActivity
           <div className="text-[11px] text-[var(--text-disabled)] italic py-2">No time logged yet.</div>
         ) : (
           <div className="flex items-center gap-5">
-            <svg width="64" height="64" viewBox="0 0 36 36" className="transform -rotate-90 drop-shadow-md">
-              {catArray.map(([cat, mins]) => {
-                const pct = (mins / totalMins) * 100;
-                const strokeDasharray = `${pct} ${100 - pct}`;
-                const strokeDashoffset = -cumulativePct;
-                cumulativePct += pct;
-                const color = colors[cat] || '#888';
-                return (
-                  <circle
-                    key={cat}
-                    cx="18" cy="18" r="15.91549430918954"
-                    fill="transparent" stroke={color} strokeWidth="4"
-                    strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset}
-                  />
-                );
-              })}
-            </svg>
+            <div style={{ width: '80px', height: '80px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%" cy="50%"
+                    innerRadius={25} outerRadius={38}
+                    paddingAngle={3}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
             <div className="flex flex-col flex-1 gap-1">
               {catArray.slice(0, 3).map(([cat, mins]) => (
                 <div key={cat} className="flex items-center gap-2 text-[10px] font-mono">

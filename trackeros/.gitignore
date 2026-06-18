@@ -27,3 +27,9 @@ trackeros/release/
 *.exe
 dist/
 build/
+
+node-portable/
+node_modules/
+dist/
+release/
+out/

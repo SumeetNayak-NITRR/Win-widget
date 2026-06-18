@@ -98,15 +98,10 @@ function BlockRow({ block, index, total, categories, isConflict, onEdit, onDelet
   );
 }
 
-function BlockEditForm({ block, categories, onSave, onCancel }) {
+function BlockEditForm({ block, categories, goals, onSave, onCancel }) {
   const [form, setForm] = useState(block
-    ? { label: block.label, start: block.start, end: block.end, category: block.category, emoji: block.emoji || '',
-        direction: block.direction || '', focus: block.focus || '', todayTarget: block.todayTarget || '' }
-    : { label: '', start: '09:00', end: '10:00', category: 'study', emoji: '',
-        direction: '', focus: '', todayTarget: '' }
-  );
-  const [showDirection, setShowDirection] = useState(
-    !!(block?.direction || block?.focus || block?.todayTarget)
+    ? { label: block.label, start: block.start, end: block.end, category: block.category, emoji: block.emoji || '', linkedOutcomeId: block.linkedOutcomeId || '', topic: block.topic || '' }
+    : { label: '', start: '09:00', end: '10:00', category: 'study', emoji: '', linkedOutcomeId: '', topic: '' }
   );
 
   return (
@@ -143,6 +138,23 @@ function BlockEditForm({ block, categories, onSave, onCancel }) {
         className="focus:border-[var(--accent)]"
         autoFocus
       />
+      
+      <input
+        type="text"
+        value={form.topic || ''}
+        onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
+        placeholder="Specific topic/task for this block (optional)"
+        style={{
+          background: 'rgba(0,0,0,0.25)',
+          border: '0.5px solid var(--border-subtle)',
+          borderRadius: '5px',
+          padding: '5px 8px',
+          fontSize: '11px',
+          color: 'var(--text-secondary)',
+          outline: 'none',
+        }}
+        className="focus:border-[var(--accent)]"
+      />
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
           <label style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Start</label>
@@ -167,46 +179,30 @@ function BlockEditForm({ block, categories, onSave, onCancel }) {
           ))}
         </select>
       </div>
-      {/* Direction Layer Section */}
+      {/* Goal Link Section */}
       <div style={{ borderTop: '0.5px solid var(--border-subtle)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <button
-          onClick={() => setShowDirection(d => !d)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        <label style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>🔗 Link to Goal</label>
+        <select
+          value={form.linkedOutcomeId || ''}
+          onChange={e => setForm(f => ({ ...f, linkedOutcomeId: e.target.value }))}
+          style={{ background: 'rgba(0,0,0,0.25)', border: '0.5px solid var(--border-subtle)', borderRadius: '5px', padding: '5px 8px', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
         >
-          <span style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>🧭 Direction Layer</span>
-          <span style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>{showDirection ? '▲' : '▼'}</span>
-          {(form.direction || form.focus || form.todayTarget) && (
-            <span style={{ fontSize: '8px', background: 'rgba(76,194,255,0.15)', color: 'var(--accent)', padding: '1px 5px', borderRadius: '10px', fontFamily: 'monospace' }}>set</span>
-          )}
-        </button>
-        {showDirection && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <label style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>🎯 Direction (long-term goal)</label>
-              <input type="text" value={form.direction}
-                onChange={e => setForm(f => ({ ...f, direction: e.target.value }))}
-                placeholder="e.g. Data Analytics Placement"
-                style={{ background: 'rgba(0,0,0,0.2)', border: '0.5px solid var(--border-subtle)', borderRadius: '4px', padding: '4px 7px', fontSize: '11px', color: 'var(--text-primary)', outline: 'none', width: '100%' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <label style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>📚 Focus (weekly area)</label>
-              <input type="text" value={form.focus}
-                onChange={e => setForm(f => ({ ...f, focus: e.target.value }))}
-                placeholder="e.g. SQL Joins"
-                style={{ background: 'rgba(0,0,0,0.2)', border: '0.5px solid var(--border-subtle)', borderRadius: '4px', padding: '4px 7px', fontSize: '11px', color: 'var(--text-primary)', outline: 'none', width: '100%' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <label style={{ fontSize: '9px', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>⚡ Today's Target</label>
-              <input type="text" value={form.todayTarget}
-                onChange={e => setForm(f => ({ ...f, todayTarget: e.target.value }))}
-                placeholder="e.g. Practice Filtering"
-                style={{ background: 'rgba(0,0,0,0.2)', border: '0.5px solid var(--border-subtle)', borderRadius: '4px', padding: '4px 7px', fontSize: '11px', color: 'var(--text-primary)', outline: 'none', width: '100%' }} />
-            </div>
-            <div style={{ fontSize: '9px', color: 'var(--text-disabled)', fontStyle: 'italic', lineHeight: 1.5 }}>
-              These will pre-fill the Direction Layer when this block is active (only if you haven't set one manually today).
-            </div>
-          </div>
-        )}
+          <option value="">None</option>
+          {goals.filter(g => g.type === 'northstar').map(ns => {
+            const children = goals.filter(g => g.type === 'outcome' && g.parentId === ns.id);
+            return (
+              <React.Fragment key={ns.id}>
+                <option value={ns.id}>★ {ns.icon} {ns.label}</option>
+                {children.map(oc => (
+                  <option key={oc.id} value={oc.id}>&nbsp;&nbsp;&nbsp;↳ {oc.label}</option>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </select>
+        <div style={{ fontSize: '9px', color: 'var(--text-disabled)', fontStyle: 'italic', lineHeight: 1.5 }}>
+          Linking a goal shows the Goal Card during this block. Create new goals in the Stats menu.
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>
@@ -230,10 +226,15 @@ export default function TemplateEditor({ categories = [], onTemplatesChange }) {
   const [newTemplateName, setNewTemplateName] = useState('');
   const [addingTemplate, setAddingTemplate] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState(null);
+  const [goals, setGoals] = useState([]);
 
   useEffect(() => {
-    window.tracker?.getTemplates?.().then(t => {
+    Promise.all([
+      window.tracker?.getTemplates?.() || Promise.resolve({}),
+      window.tracker?.getGoals?.() || Promise.resolve([])
+    ]).then(([t, g]) => {
       setTemplates(t || {});
+      setGoals(g || []);
       if (!selectedTemplate && t && Object.keys(t).length > 0) {
         setSelectedTemplate(Object.keys(t)[0]);
       }
@@ -371,6 +372,7 @@ export default function TemplateEditor({ categories = [], onTemplatesChange }) {
                     <BlockEditForm
                       block={block}
                       categories={categories}
+                      goals={goals}
                       onSave={form => handleSaveBlock(form, block.id)}
                       onCancel={() => setEditingBlock(null)}
                     />
@@ -402,6 +404,7 @@ export default function TemplateEditor({ categories = [], onTemplatesChange }) {
             <BlockEditForm
               block={null}
               categories={categories}
+              goals={goals}
               onSave={form => handleSaveBlock({ ...form, start: form.start || suggestNextStart(currentBlocks) })}
               onCancel={() => setEditingBlock(null)}
             />
