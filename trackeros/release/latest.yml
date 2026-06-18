@@ -1,8 +1,8 @@
 version: 1.0.0
 files:
   - url: TrackerOS-Setup-1.0.0.exe
-    sha512: q49cFPJ+TIwetEA/656lM8iiJIsjw4iuvZsofflFrZVHz6+SNx7VcyXMHt8CwTJATGT+hXnXfB1hm7gFeHOazA==
-    size: 96585983
+    sha512: lSwIuHEPv5z8yjVj1u9fdppIafarwjm3U6cjpM9oDFLbDxnmdjbAE++NLbn1ITwYtk3wncd/MdTMm5TpndvCaA==
+    size: 96586011
 path: TrackerOS-Setup-1.0.0.exe
-sha512: q49cFPJ+TIwetEA/656lM8iiJIsjw4iuvZsofflFrZVHz6+SNx7VcyXMHt8CwTJATGT+hXnXfB1hm7gFeHOazA==
-releaseDate: '2026-06-18T04:15:01.704Z'
+sha512: lSwIuHEPv5z8yjVj1u9fdppIafarwjm3U6cjpM9oDFLbDxnmdjbAE++NLbn1ITwYtk3wncd/MdTMm5TpndvCaA==
+releaseDate: '2026-06-18T07:32:28.987Z'

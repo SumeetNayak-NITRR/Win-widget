@@ -223,7 +223,7 @@ function createWindows() {
     if (isSetupMode) return; // Do not auto-minimize during the setup wizard
     if (blurTimeout) clearTimeout(blurTimeout);
     blurTimeout = setTimeout(() => {
-      if (!mainWin.isFocused() && (!statsWin.isVisible() || !statsWin.isFocused())) {
+      if (!mainWin.isFocused() && (!statsWin || !statsWin.isVisible() || !statsWin.isFocused())) {
         setMiniMode(true);
       }
     }, 200);
@@ -344,7 +344,7 @@ function registerIPC() {
     app.setLoginItemSettings({
       openAtLogin: val,
       path: app.getPath('exe'),
-      args: ['--hidden']
+      args: []
     });
     return true;
   });
@@ -572,7 +572,7 @@ app.whenReady().then(async () => {
   app.setLoginItemSettings({
     openAtLogin: openAtLogin,
     path: app.getPath('exe'),
-    args: ['--hidden']
+    args: []
   });
 
   if (!isDev) {

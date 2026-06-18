@@ -83,8 +83,8 @@ function WidgetRoot() {
       const lastSetup = await window.tracker?.getSetupState?.();
       
       if (lastSetup === dateKey) {
-        // Already set up today
-        setViewState('full');
+        // Already set up today, start in mini mode
+        window.tracker?.minimize?.();
         return;
       }
 
