@@ -1,0 +1,5 @@
+owner: SumeetNayak-NITRR
+repo: trackeros
+provider: github
+releaseType: release
+updaterCacheDirName: trackeros-updater

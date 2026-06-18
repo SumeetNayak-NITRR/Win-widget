@@ -25,7 +25,7 @@ function Checkbox({ done, onToggle }) {
   );
 }
 
-export default function TaskList({ tasks, onToggle, onAdd }) {
+function TaskList({ tasks, onToggle, onAdd }) {
   const [showInput, setShowInput] = useState(false);
   const [inputVal, setInputVal] = useState('');
   const inputRef = useRef(null);

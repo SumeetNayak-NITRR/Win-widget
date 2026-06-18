@@ -112,4 +112,4 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
     </div>
   );
 }
-export default React.memo(CurrentBlock);
+

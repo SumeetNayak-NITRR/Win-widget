@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DayProgress({ done, total }) {
+function DayProgress({ done, total }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (

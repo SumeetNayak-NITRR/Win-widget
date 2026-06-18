@@ -2,7 +2,7 @@ import React from 'react';
 import { fmtTime } from '../utils/time';
 import { CAT_COLOR } from '../data/routine';
 
-export default function UpcomingList({ upcoming }) {
+function UpcomingList({ upcoming }) {
   return (
     <div style={{ padding: '0 4px' }}>
       <div className="font-mono uppercase" style={{

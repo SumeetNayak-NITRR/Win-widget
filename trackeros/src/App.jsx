@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClock } from './hooks/useClock';
 import { useTaskStore } from './hooks/useTaskStore';
-import { DEFAULT_ROUTINE } from './data/routine';
 import { getCurrentBlock, getUpcoming, toMin, fmtDateKey } from './utils/time';
-import { getDayKey, sortBlocks } from './utils/schedule';
+import { getDayKey } from './utils/schedule';
 
 import TitleBar from './components/TitleBar';
 
@@ -43,19 +42,10 @@ function StatsRoot() {
   );
 }
 
-function useSlowerClock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 10000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
 function WidgetRoot() {
-  const now = useSlowerClock();
+  const now = useClock();
   const { tasks, addTask, toggleTask } = useTaskStore();
-  const [routine, setRoutine] = useState(DEFAULT_ROUTINE);
+  const [routine, setRoutine] = useState([]);
   const [colors, setColors] = useState({});
   const [viewState, setViewState] = useState('loading'); // loading, setup, full, mini
   const [autoTemplate, setAutoTemplate] = useState(null);
@@ -65,6 +55,7 @@ function WidgetRoot() {
   const [pomoMode, setPomoMode] = useState('focus'); // focus | break
   const [pomoTimeLeft, setPomoTimeLeft] = useState(25 * 60);
   const [ambientTrack, setAmbientTrack] = useState('none');
+  const [updateReady, setUpdateReady] = useState(false);
 
   const [currentDateKey, setCurrentDateKey] = useState(() => {
     return fmtDateKey(new Date());
@@ -121,6 +112,10 @@ function WidgetRoot() {
       setViewState(prev => prev === 'setup' ? 'setup' : state);
     });
 
+    window.tracker?.onUpdateReady?.(() => {
+      setUpdateReady(true);
+    });
+
     window.tracker?.onSkipCurrentBlock?.(() => {
       setRoutine(prevRoutine => {
         const n = new Date();
@@ -173,8 +168,8 @@ function WidgetRoot() {
       }, 1000);
     } else if (pomoActive && pomoTimeLeft === 0) {
       // Ring!
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.log('Audio play failed', e));
+      const audio = new Audio();
+      audio.play().catch(() => {});
       
       if (pomoMode === 'focus') {
         setPomoMode('break');
@@ -196,9 +191,9 @@ function WidgetRoot() {
     if (currentBlock && prevBlockIdRef.current && prevBlockIdRef.current !== currentBlock.id) {
       window.tracker?.getSoundAlertsStatus?.().then(enabled => {
         if (enabled !== false) {
-          const chime = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+          const chime = new Audio();
           chime.volume = 0.45;
-          chime.play().catch(e => console.log('Transition chime play failed', e));
+          chime.play().catch(() => {});
         }
       });
     }
@@ -214,9 +209,9 @@ function WidgetRoot() {
 
     const TRACKS = {
       none: null,
-      lofi: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      rain: 'https://assets.mixkit.co/active_storage/sfx/2448/2448-preview.mp3',
-      noise: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
+      lofi: '/audio/lofi.mp3',
+      rain: '/audio/rain.mp3',
+      noise: '/audio/noise.mp3'
     };
 
     const trackUrl = TRACKS[ambientTrack];
@@ -327,6 +322,16 @@ function WidgetRoot() {
       }} />
 
       <TitleBar onStats={() => window.tracker?.openStats()} onTimetable={() => setViewState('timetable')} onSettings={() => setViewState('settings')} />
+      
+      {updateReady && (
+        <div className="bg-[var(--accent)] text-black text-[10px] py-1 px-2 flex justify-between items-center font-medium">
+          <span>Update ready!</span>
+          <button onClick={() => window.tracker?.restartAndUpdate()} className="bg-black/20 hover:bg-black/30 px-2 py-0.5 rounded transition-colors">
+            Restart
+          </button>
+        </div>
+      )}
+
       <LiveClock />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -388,5 +393,18 @@ function AcrylicDivider() {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        document.body.classList.add('animations-paused');
+      } else {
+        document.body.classList.remove('animations-paused');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    handleVisibility();
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   return isStatsWindow ? <StatsRoot /> : <WidgetRoot />;
 }

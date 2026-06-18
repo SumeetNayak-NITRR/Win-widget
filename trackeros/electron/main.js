@@ -2,22 +2,10 @@
 
 const { app, BrowserWindow, ipcMain, globalShortcut, screen, Notification, dialog } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 
 const isDev = process.env.NODE_ENV === 'development';
 
-const DEFAULT_ROUTINE = [
-  { id: 'r1',  label: 'Morning Run + Stretch',  start: '06:00', end: '06:45', category: 'fitness' },
-  { id: 'r2',  label: 'Breakfast + Oats',        start: '07:00', end: '07:30', category: 'health'  },
-  { id: 'r3',  label: 'DSA Practice · A2Z',      start: '09:00', end: '11:00', category: 'study'   },
-  { id: 'r4',  label: 'Mining Engg. Study',       start: '11:30', end: '13:00', category: 'study'   },
-  { id: 'r5',  label: 'Lunch + Rest',             start: '13:00', end: '14:00', category: 'health'  },
-  { id: 'r6',  label: 'English Communication',    start: '14:30', end: '15:30', category: 'skill'   },
-  { id: 'r7',  label: 'Football Practice',        start: '16:00', end: '17:30', category: 'sport'   },
-  { id: 'r8',  label: 'Evening Cooldown',         start: '17:30', end: '18:00', category: 'fitness' },
-  { id: 'r9',  label: 'Dinner + Downtime',        start: '19:30', end: '20:30', category: 'health'  },
-  { id: 'r10', label: 'LifeOS / Dev Work',        start: '21:00', end: '22:30', category: 'dev'     },
-  { id: 'r11', label: 'Sleep Prep',               start: '23:00', end: '23:30', category: 'health'  },
-];
 
 let mainWin = null;
 let statsWin = null;
@@ -158,28 +146,12 @@ function createWindows() {
     x: finalX,
     y: finalY,
     frame: false,
-    transparent: true,
-    backgroundMaterial: 'acrylic',   // Windows 11 real acrylic
+    transparent: false,
+    backgroundColor: '#111111',
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-
-  // ─── Stats Window (Fluent Acrylic) ───────────────────────────────
-  statsWin = new BrowserWindow({
-    width: 380,
-    height: 500,
-    frame: false,
-    transparent: true,
-    backgroundMaterial: 'acrylic',   // Windows 11 real acrylic
-    resizable: false,
-    skipTaskbar: true,
-    show: false,
+    show: !process.argv.includes('--hidden'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -189,17 +161,12 @@ function createWindows() {
 
   if (isDev) {
     mainWin.loadURL('http://localhost:5173');
-    statsWin.loadURL('http://localhost:5173/#/stats');
   } else {
     mainWin.loadFile(path.join(__dirname, '../dist/index.html'));
-    statsWin.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'stats' });
   }
 
   mainWin.on('close', (e) => { e.preventDefault(); mainWin.hide(); });
-  statsWin.on('close', (e) => { e.preventDefault(); statsWin.hide(); });
-  statsWin.on('show', () => {
-    statsWin.webContents.send('stats-refresh');
-  });
+
 
   let isSnapping = false;
   const saveBounds = () => {
@@ -241,8 +208,14 @@ function createWindows() {
     }
   };
 
-  mainWin.on('moved', saveBounds);
-  mainWin.on('resized', saveBounds);
+  let boundsTimeout = null;
+  const debouncedSaveBounds = () => {
+    if (boundsTimeout) clearTimeout(boundsTimeout);
+    boundsTimeout = setTimeout(saveBounds, 300);
+  };
+
+  mainWin.on('moved', debouncedSaveBounds);
+  mainWin.on('resized', debouncedSaveBounds);
 
   // Auto-minimize on blur with 200ms debounce
   let blurTimeout = null;
@@ -370,7 +343,8 @@ function registerIPC() {
     storeSet('settings.openAtLogin', val);
     app.setLoginItemSettings({
       openAtLogin: val,
-      path: app.getPath('exe')
+      path: app.getPath('exe'),
+      args: ['--hidden']
     });
     return true;
   });
@@ -447,9 +421,15 @@ function registerIPC() {
   // Daily Setup
   ipcMain.handle('get-templates', () => storeGet('templates', {}));
   ipcMain.handle('save-templates', (_, temps) => { storeSet('templates', temps); return true; });
-  ipcMain.handle('get-colors', () => storeGet('colors', {
-    fitness: '#ef4444', health: '#22c55e', study: '#3b82f6', sport: '#f59e0b', skill: '#a855f7', dev: '#ec4899', work: '#6366f1', other: '#94a3b8'
-  }));
+  ipcMain.handle('get-colors', () => {
+    const stored = storeGet('colors', null);
+    if (stored) return stored;
+    // Build defaults from categories
+    const cats = storeGet('categories', []);
+    const colors = {};
+    cats.forEach(c => { colors[c.id] = c.color; });
+    return colors;
+  });
   ipcMain.handle('save-colors', (_, colors) => { storeSet('colors', colors); return true; });
   ipcMain.handle('get-daily-routine', (_, date) => storeGet(`routine_${date}`, null));
   ipcMain.handle('save-daily-routine', (_, date, r) => { 
@@ -486,16 +466,6 @@ function registerIPC() {
 
   ipcMain.on('set-setup-mode', () => {
     isSetupMode = true;
-    if (!originalBounds && !isMini) originalBounds = mainWin.getBounds();
-    mainWin.setResizable(true);
-    const display = screen.getPrimaryDisplay();
-    mainWin.setBounds({
-      width: 450,
-      height: 600,
-      x: Math.round(display.workArea.x + (display.workArea.width - 450) / 2),
-      y: Math.round(display.workArea.y + (display.workArea.height - 600) / 2)
-    }, true);
-    mainWin.setResizable(false);
   });
 
   ipcMain.on('finish-setup', () => {
@@ -503,28 +473,45 @@ function registerIPC() {
     const today = new Date();
     const key = fmtDateKey(today);
     storeSet('settings.lastSetupDate', key);
-    
-    mainWin.setResizable(true);
-    mainWin.setMinimumSize(DEFAULT_FULL_WIDTH, DEFAULT_FULL_HEIGHT);
-    if (originalBounds) {
-      mainWin.setBounds({
-        x: originalBounds.x,
-        y: originalBounds.y,
-        width: DEFAULT_FULL_WIDTH,
-        height: DEFAULT_FULL_HEIGHT
-      }, true);
-    } else {
-      mainWin.setBounds({ width: DEFAULT_FULL_WIDTH, height: DEFAULT_FULL_HEIGHT }, true);
-      mainWin.center();
-    }
-    mainWin.setResizable(false);
-    mainWin.focus();
+    if (mainWin) mainWin.focus();
   });
 
   ipcMain.on('win-minimize', () => setMiniMode(true));
   ipcMain.on('win-close',    () => mainWin && mainWin.hide());
+  function getOrCreateStatsWin() {
+    if (statsWin) return statsWin;
+    statsWin = new BrowserWindow({
+      width: 380,
+      height: 500,
+      frame: false,
+      transparent: true,
+      backgroundMaterial: 'acrylic',
+      resizable: false,
+      skipTaskbar: true,
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    if (isDev) {
+      statsWin.loadURL('http://localhost:5173/#/stats');
+    } else {
+      statsWin.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'stats' });
+    }
+    statsWin.on('close', (e) => { e.preventDefault(); statsWin.hide(); });
+    return statsWin;
+  }
+
   ipcMain.on('stats-close',  () => statsWin && statsWin.hide());
-  ipcMain.on('open-stats',   () => { positionStatsWindow(); statsWin.show(); statsWin.focus(); statsWin.webContents.send('stats-refresh'); });
+  ipcMain.on('open-stats',   () => { 
+    getOrCreateStatsWin();
+    positionStatsWindow(); 
+    statsWin.show(); 
+    statsWin.focus(); 
+    statsWin.webContents.send('stats-refresh'); 
+  });
   
   ipcMain.on('widget-expand', () => {
     setMiniMode(false);
@@ -581,12 +568,22 @@ app.whenReady().then(async () => {
     },
   });
 
-  // Auto-launch based on stored setting (defaults to true)
   const openAtLogin = storeGet('settings.openAtLogin', true);
   app.setLoginItemSettings({
     openAtLogin: openAtLogin,
-    path: app.getPath('exe')
+    path: app.getPath('exe'),
+    args: ['--hidden']
   });
+
+  if (!isDev) {
+    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.on('update-downloaded', () => {
+      if (mainWin) mainWin.webContents.send('update-ready');
+    });
+    ipcMain.on('restart-app', () => {
+      autoUpdater.quitAndInstall();
+    });
+  }
 
   createWindows();
   registerIPC();

@@ -6,7 +6,18 @@ directories:
 files:
   - dist/**/*
   - electron/**/*
-  - node_modules/**/*
+  - "!**/*.md"
+  - "!**/*.map"
+  - "!**/test/**"
+  - "!**/__tests__/**"
+  - "!node_modules/**/{CHANGELOG.md,README.md,readme.md}"
+  - "!node_modules/.cache"
+compression: maximum
+publish:
+  provider: github
+  owner: SumeetNayak-NITRR
+  repo: trackeros
+  releaseType: release
 win:
   target: nsis
   icon: assets/icon.ico

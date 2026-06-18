@@ -61,5 +61,11 @@ contextBridge.exposeInMainWorld('tracker', {
     ipcRenderer.on('stats-refresh', sub);
     return () => ipcRenderer.removeListener('stats-refresh', sub);
   },
+  onUpdateReady: (callback) => {
+    const sub = () => callback();
+    ipcRenderer.on('update-ready', sub);
+    return () => ipcRenderer.removeListener('update-ready', sub);
+  },
+  restartAndUpdate: () => ipcRenderer.send('restart-app'),
   setSetupMode: () => ipcRenderer.send('set-setup-mode'),
 });

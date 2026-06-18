@@ -116,3 +116,7 @@ input:focus { outline: none; border-color: rgba(76,194,255,0.45) !important; }
 
 /* ─── Selection ─────────────────────────────────────────────────── */
 ::selection { background: rgba(76,194,255,0.22); color: var(--text-primary); }
+
+.animations-paused * {
+  animation-play-state: paused !important;
+}
