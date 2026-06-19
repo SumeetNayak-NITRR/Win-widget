@@ -11,6 +11,8 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
   const [direction, setDirection] = useState('increase');
   const [trackType, setTrackType] = useState('boolean');
   const [dueDate, setDueDate] = useState('');
+  const [targetCount, setTargetCount] = useState('');
+  const [targetDuration, setTargetDuration] = useState('');
 
   const handleSave = () => {
     if (!label.trim()) return;
@@ -34,6 +36,13 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
       base.trackType = trackType;
       base.dueDate = dueDate || null;
       base.done = false;
+      if (trackType === 'count') {
+        base.targetCount = Number(targetCount) || 0;
+        base.currentCount = 0;
+      } else if (trackType === 'duration') {
+        base.targetDuration = Number(targetDuration) || 0;
+        base.currentDuration = 0;
+      }
     }
     onSave(base);
   };
@@ -86,6 +95,20 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
             <button onClick={() => setTrackType('duration')} className={`flex-1 py-1.5 px-2 rounded-md transition-colors border ${trackType === 'duration' ? 'bg-[rgba(77,142,255,0.15)] text-[#4d8eff] border-[#4d8eff]' : 'bg-[rgba(255,255,255,0.03)] text-[#aaa] border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.08)]'}`} style={{ fontSize: '11px', fontWeight: '500' }}>⏱ Duration</button>
             <button onClick={() => setTrackType('count')} className={`flex-1 py-1.5 px-2 rounded-md transition-colors border ${trackType === 'count' ? 'bg-[rgba(77,142,255,0.15)] text-[#4d8eff] border-[#4d8eff]' : 'bg-[rgba(255,255,255,0.03)] text-[#aaa] border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.08)]'}`} style={{ fontSize: '11px', fontWeight: '500' }}>🔢 Count</button>
           </div>
+          {trackType === 'count' && (
+            <div className="flex items-center gap-2 mt-1">
+              <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Target Count (Optional)</span>
+              <input type="number" min="1" value={targetCount} onChange={e => setTargetCount(e.target.value)} placeholder="e.g. 4"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', padding: '4px 8px', outline: 'none', fontSize: '11px', width: '60px' }} />
+            </div>
+          )}
+          {trackType === 'duration' && (
+            <div className="flex items-center gap-2 mt-1">
+              <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Target Mins (Optional)</span>
+              <input type="number" min="1" value={targetDuration} onChange={e => setTargetDuration(e.target.value)} placeholder="e.g. 30"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', padding: '4px 8px', outline: 'none', fontSize: '11px', width: '60px' }} />
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-1">
             <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Deadline (Optional)</span>
             <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}

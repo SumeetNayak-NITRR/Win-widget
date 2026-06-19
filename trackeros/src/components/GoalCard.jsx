@@ -55,10 +55,39 @@ export default function GoalCard({ block, embedded = false }) {
   const [newLogValue, setNewLogValue] = useState('');
   const [actionText, setActionText] = useState('');
   const [actionDone, setActionDone] = useState(false);
+  const [activeTimers, setActiveTimers] = useState({});
 
   useEffect(() => {
     window.tracker?.getGoals?.().then(g => setGoals(g || []));
   }, []);
+
+  useEffect(() => {
+    let interval;
+    if (Object.keys(activeTimers).length > 0) {
+      interval = setInterval(() => {
+        setGoals(prev => {
+          let modified = false;
+          const next = prev.map(g => {
+            if (activeTimers[g.id]) {
+              modified = true;
+              const newDur = (g.currentDuration || 0) + 1;
+              const isDone = g.targetDuration > 0 && Math.floor(newDur / 60) >= g.targetDuration;
+              return { ...g, currentDuration: newDur, done: isDone ? true : g.done };
+            }
+            return g;
+          });
+          if (modified) {
+            if (Math.floor(Date.now() / 1000) % 5 === 0) {
+              window.tracker?.saveGoals?.(next);
+            }
+            return next;
+          }
+          return prev;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTimers]);
 
   if (!block || !block.linkedOutcomeId) return null;
 
@@ -108,6 +137,18 @@ export default function GoalCard({ block, embedded = false }) {
 
   const handleToggleFocus = (focusId, currentDone) => {
     const updatedGoals = goals.map(g => g.id === focusId ? { ...g, done: !currentDone } : g);
+    setGoals(updatedGoals);
+    window.tracker?.saveGoals?.(updatedGoals);
+  };
+
+  const handleUpdateCount = (focId, newCount) => {
+    const updatedGoals = goals.map(g => {
+      if (g.id === focId) {
+        const isDone = g.targetCount > 0 && newCount >= g.targetCount;
+        return { ...g, currentCount: newCount, done: isDone ? true : g.done };
+      }
+      return g;
+    });
     setGoals(updatedGoals);
     window.tracker?.saveGoals?.(updatedGoals);
   };
@@ -214,23 +255,55 @@ export default function GoalCard({ block, embedded = false }) {
                 <div className="flex flex-col gap-2">
                   {targetFocuses.map(foc => {
                     const due = getDueStatus(foc.dueDate);
+                    const isDuration = foc.trackType === 'duration';
+                    const isCount = foc.trackType === 'count';
+                    const isActiveTimer = activeTimers[foc.id];
+
                     return (
                     <div key={foc.id} className="flex items-center gap-2">
-                      <div 
-                        onClick={() => handleToggleFocus(foc.id, foc.done)}
-                        className="w-[14px] h-[14px] shrink-0 rounded-full border flex items-center justify-center cursor-pointer transition-colors"
-                        style={{
-                          borderColor: foc.done ? '#4d8eff' : '#555',
-                          background: foc.done ? '#4d8eff' : 'transparent'
-                        }}
-                      >
-                        {foc.done && <span className="text-[#000] text-[9px]">✓</span>}
-                      </div>
-                      <span className="text-[11px] font-sans" style={{ color: foc.done ? '#666' : '#e6e6e6', textDecoration: foc.done ? 'line-through' : 'none' }}>
+                      {isDuration ? (
+                        <div onClick={() => {
+                          setActiveTimers(prev => {
+                            const next = { ...prev };
+                            if (next[foc.id]) {
+                                delete next[foc.id]; 
+                                window.tracker?.saveGoals?.(goals);
+                            } else { next[foc.id] = true; }
+                            return next;
+                          });
+                        }} className="w-[14px] h-[14px] shrink-0 rounded-full border border-[#4d8eff] flex items-center justify-center cursor-pointer transition-colors hover:bg-[rgba(77,142,255,0.1)] text-[#4d8eff] text-[8px]" style={{ opacity: foc.done ? 0.5 : 1 }}>
+                           {isActiveTimer ? '❚❚' : '▶'}
+                        </div>
+                      ) : (
+                        <div onClick={() => handleToggleFocus(foc.id, foc.done)} className="w-[14px] h-[14px] shrink-0 rounded-full border flex items-center justify-center cursor-pointer transition-colors" style={{ borderColor: foc.done ? '#4d8eff' : '#555', background: foc.done ? '#4d8eff' : 'transparent' }}>
+                          {foc.done && <span className="text-[#000] text-[9px]">✓</span>}
+                        </div>
+                      )}
+
+                      <span className="text-[11px] font-sans flex-1" style={{ color: foc.done ? '#666' : '#e6e6e6', textDecoration: foc.done ? 'line-through' : 'none' }}>
                         {foc.label}
                       </span>
+
+                      {isDuration && (
+                        <span className="text-[9px] font-mono text-[#888] flex items-center gap-1 bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 rounded">
+                          <span style={{ color: isActiveTimer ? '#4d8eff' : '#888' }}>
+                            {Math.floor((foc.currentDuration||0) / 60).toString().padStart(2, '0')}:{( (foc.currentDuration||0) % 60 ).toString().padStart(2, '0')}
+                          </span>
+                          {foc.targetDuration > 0 && <span className="text-[#555]">/ {foc.targetDuration}m</span>}
+                        </span>
+                      )}
+
+                      {isCount && (
+                        <div className="flex items-center gap-1.5 text-[9px] font-mono bg-[rgba(255,255,255,0.03)] px-1 py-0.5 rounded">
+                          <button onClick={() => handleUpdateCount(foc.id, Math.max(0, (foc.currentCount||0) - 1))} className="w-[14px] h-[14px] flex items-center justify-center rounded-full hover:bg-[rgba(255,255,255,0.1)] text-[#aaa] transition-colors">-</button>
+                          <span className="text-[#888] min-w-[12px] text-center">{foc.currentCount || 0}</span>
+                          {foc.targetCount > 0 && <span className="text-[#555]">/ {foc.targetCount}</span>}
+                          <button onClick={() => handleUpdateCount(foc.id, (foc.currentCount||0) + 1)} className="w-[14px] h-[14px] flex items-center justify-center rounded-full hover:bg-[rgba(255,255,255,0.1)] text-[#aaa] transition-colors">+</button>
+                        </div>
+                      )}
+
                       {due && !foc.done && (
-                        <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: due.color, marginLeft: 'auto' }}>
+                        <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: due.color }}>
                           {due.text}
                         </span>
                       )}
