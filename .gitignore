@@ -1,4 +1,8 @@
 node.cmd
 npm.cmd
 npx.cmd
+<<<<<<< HEAD
 node-portable/
+=======
+node-portable/
+>>>>>>> fcb21ffb6bf8b9893db79fc7b957ef23876c960d

@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('tracker', {
   setSoundAlertsStatus: (val)=> ipcRenderer.invoke('set-sound-alerts', val),
   exportData:           ()   => ipcRenderer.invoke('export-data'),
   importData:           ()   => ipcRenderer.invoke('import-data'),
+  getGoals:             ()   => ipcRenderer.invoke('get-goals'),
+  saveGoals:            (g)  => ipcRenderer.invoke('save-goals', g),
   
   // Daily Setup IPC
   getTemplates:  () => ipcRenderer.invoke('get-templates'),

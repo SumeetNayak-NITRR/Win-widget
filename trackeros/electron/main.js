@@ -464,6 +464,10 @@ function registerIPC() {
   ipcMain.handle('get-categories', () => storeGet('categories', []));
   ipcMain.handle('save-categories', (_, cats) => { storeSet('categories', cats); return true; });
 
+  // Goals
+  ipcMain.handle('get-goals', () => storeGet('goals', []));
+  ipcMain.handle('save-goals', (_, g) => { storeSet('goals', g); return true; });
+
   ipcMain.on('set-setup-mode', () => {
     isSetupMode = true;
   });

@@ -9,6 +9,7 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
   const [targetValue, setTargetValue] = useState('');
   const [unit, setUnit] = useState('');
   const [direction, setDirection] = useState('increase');
+  const [trackType, setTrackType] = useState('boolean');
   const [dueDate, setDueDate] = useState('');
 
   const handleSave = () => {
@@ -30,6 +31,7 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
       base.direction = direction;
       base.history = [{ date: new Date().toISOString().split('T')[0], value: base.currentValue }];
     } else if (type === 'focus') {
+      base.trackType = trackType;
       base.dueDate = dueDate || null;
       base.done = false;
     }
@@ -75,9 +77,20 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
       )}
 
       {type === 'focus' && (
-        <div className="flex gap-2 mb-2" style={{ fontSize: '11px' }}>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '4px', padding: '4px', outline: 'none' }} />
+        <div className="flex flex-col gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Tracking Type</span>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setTrackType('boolean')} className={`flex-1 py-1.5 px-2 rounded-md transition-colors border ${trackType === 'boolean' ? 'bg-[rgba(77,142,255,0.15)] text-[#4d8eff] border-[#4d8eff]' : 'bg-[rgba(255,255,255,0.03)] text-[#aaa] border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.08)]'}`} style={{ fontSize: '11px', fontWeight: '500' }}>✓ Boolean</button>
+            <button onClick={() => setTrackType('duration')} className={`flex-1 py-1.5 px-2 rounded-md transition-colors border ${trackType === 'duration' ? 'bg-[rgba(77,142,255,0.15)] text-[#4d8eff] border-[#4d8eff]' : 'bg-[rgba(255,255,255,0.03)] text-[#aaa] border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.08)]'}`} style={{ fontSize: '11px', fontWeight: '500' }}>⏱ Duration</button>
+            <button onClick={() => setTrackType('count')} className={`flex-1 py-1.5 px-2 rounded-md transition-colors border ${trackType === 'count' ? 'bg-[rgba(77,142,255,0.15)] text-[#4d8eff] border-[#4d8eff]' : 'bg-[rgba(255,255,255,0.03)] text-[#aaa] border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.08)]'}`} style={{ fontSize: '11px', fontWeight: '500' }}>🔢 Count</button>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Deadline (Optional)</span>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '6px', padding: '4px 8px', outline: 'none', fontSize: '11px' }} />
+          </div>
         </div>
       )}
 

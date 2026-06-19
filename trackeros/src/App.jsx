@@ -17,6 +17,7 @@ import MiniWidget from './components/MiniWidget';
 import DailySetup from './components/DailySetup';
 import Timetable from './components/Timetable';
 import SettingsPanel from './components/SettingsPanel';
+import WeeklyReview from './components/WeeklyReview';
 
 const widgetVariants = {
   hidden:  { opacity: 0, y: 10, scale: 0.98 },
@@ -133,6 +134,11 @@ function WidgetRoot() {
   useEffect(() => {
     init();
 
+    const goalPollId = setInterval(async () => {
+      const g = await window.tracker?.getGoals?.();
+      if (g) setGoals(g);
+    }, 5000);
+
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -163,6 +169,8 @@ function WidgetRoot() {
         return prevRoutine;
       });
     });
+
+    return () => clearInterval(goalPollId);
   }, []);
 
   // Midnight rollover: detect when the date changes while app is running
