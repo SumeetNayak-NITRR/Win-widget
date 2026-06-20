@@ -163,7 +163,7 @@ export default function StatsPanel() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
-        {activeTab === 'today' && <TodayTab done={done} total={total} pct={pct} tasks={todayTasks} />}
+        {activeTab === 'today' && <TodayTab done={done} total={total} pct={pct} tasks={todayTasks} weekDays={weekDays} monthActivity={monthActivity} todayKey={todayKey} />}
         {activeTab === 'week'  && <WeekTab weekDays={weekDays} logs={logs} todayKey={todayKey} todayDone={done} todayTotal={total} weekActivity={weekActivity} monthActivity={monthActivity} />}
         {activeTab === 'goals' && <GoalManager goals={goals} setGoals={(g) => { setGoals(g); window.tracker?.saveGoals?.(g); }} />}
       </div>
@@ -181,9 +181,49 @@ export default function StatsPanel() {
   );
 }
 
-function TodayTab({ done, total, pct, tasks }) {
+function TodayTab({ done, total, pct, tasks, weekDays, monthActivity, todayKey }) {
   return (
     <div>
+      {/* Week Pulse Strip */}
+      <div className="flex justify-between gap-1 mb-4 bg-[rgba(255,255,255,0.02)] p-2 rounded-lg border border-[rgba(255,255,255,0.05)]">
+        {weekDays?.map(day => {
+          const acts = monthActivity?.[day.key] || [];
+          const actDone = acts.filter(a => a.status === 'done').length;
+          const actTotal = acts.length;
+          let color = '#333';
+          
+          if (day.isFuture) {
+            color = 'rgba(255,255,255,0.03)';
+          } else if (actTotal > 0) {
+            const ratio = actDone / actTotal;
+            if (ratio === 1) color = '#22c55e';
+            else if (ratio >= 0.5) color = '#f59e0b';
+            else color = '#ef4444';
+          } else if (day.isToday) {
+            color = 'var(--accent)';
+          } else {
+            color = 'rgba(255,255,255,0.05)';
+          }
+
+          return (
+            <div key={day.key} className="flex flex-col items-center flex-1" title={`${day.name} - ${actDone}/${actTotal} blocks`}>
+              <span className="text-[8px] font-mono text-[#888] mb-1.5" style={{ color: day.isToday ? 'var(--text-primary)' : '#888', fontWeight: day.isToday ? 'bold' : 'normal' }}>
+                {day.name[0]}
+              </span>
+              <div 
+                className="w-full h-[6px] rounded-full transition-colors" 
+                style={{ 
+                  background: color, 
+                  opacity: day.isFuture ? 0.5 : 1,
+                  boxShadow: day.isToday ? `0 0 6px ${color}66` : 'none',
+                  border: day.isToday ? `1px solid ${color}` : '1px solid transparent'
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
         <AcrylicStatCard value={`${done}/${total}`} label="TASKS DONE" color="var(--green)" />
         <AcrylicStatCard value={`${pct}%`}          label="COMPLETION"  color="var(--accent)" />
@@ -390,6 +430,28 @@ function WeekTab({ weekDays, logs, todayKey, todayDone, todayTotal, weekActivity
           {summary}
         </p>
       </div>
+
+      {/* Recent Journals */}
+      {weekActivity && weekActivity.some(a => a.note || a.rating) && (
+        <div>
+          <div className="font-mono uppercase mb-2" style={{ fontSize: '9px', color: 'var(--text-disabled)', letterSpacing: '0.15em' }}>
+            Recent Journals
+          </div>
+          <div className="flex flex-col gap-2">
+            {weekActivity.filter(a => a.note || a.rating).reverse().slice(0, 3).map((a, i) => (
+              <div key={i} className="p-2.5 bg-black/20 border border-[rgba(255,255,255,0.05)] rounded-lg">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-mono text-[var(--accent)]">{a.label || a.category}</span>
+                  <span className="text-[12px]">
+                    {a.rating ? ['😴', '😐', '🙂', '😊', '🚀'][a.rating - 1] : ''}
+                  </span>
+                </div>
+                {a.note && <p className="text-[11px] text-[#ccc] italic">"{a.note}"</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

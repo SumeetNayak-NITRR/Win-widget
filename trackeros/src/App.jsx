@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClock } from './hooks/useClock';
 import { useTaskStore } from './hooks/useTaskStore';
-import { getCurrentBlock, getUpcoming, toMin, fmtDateKey } from './utils/time';
+import { getCurrentBlock, getUpcoming, toMin, fmtDateKey, getISOWeekStr, getDueStatus } from './utils/time';
 import { getDayKey } from './utils/schedule';
 
 import TitleBar from './components/TitleBar';
@@ -43,6 +43,96 @@ function StatsRoot() {
   );
 }
 
+function MorningBriefing({ streak, nextBlocks, dueTasks, onDismiss }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+      animate={{ opacity: 1, y: 0, scale: 1 }} 
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+      className="absolute inset-x-3 bottom-3 bg-[var(--acrylic-surface)] rounded-xl border border-[var(--border-strong)] p-4 shadow-2xl z-50 backdrop-blur-xl"
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-mono text-[13px] text-white font-bold flex items-center gap-2"><span>☀️</span> Morning Briefing</h3>
+        <span className="text-[10px] text-[var(--accent)] font-bold bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded-md">🔥 {streak} Day Streak</span>
+      </div>
+      
+      <div className="mb-4">
+        <div className="text-[9px] text-[var(--accent)] uppercase tracking-widest mb-1.5 font-bold">Coming up today</div>
+        <div className="flex flex-col gap-1.5">
+          {nextBlocks.length > 0 ? nextBlocks.map((b, i) => (
+            <div key={b.id} className="text-[11px] text-[#e0e0e0] flex items-center gap-2">
+              <span className="text-[9px] font-mono text-[#888] w-[32px]">{b.start}</span> {b.label}
+            </div>
+          )) : <div className="text-[11px] text-[#888]">No blocks scheduled.</div>}
+        </div>
+      </div>
+
+      {dueTasks.length > 0 && (
+        <div className="mb-4">
+          <div className="text-[9px] text-[#ff5f57] uppercase tracking-widest mb-1.5 font-bold flex items-center gap-1">⚠️ Due Today</div>
+          <div className="flex flex-col gap-1.5">
+            {dueTasks.map(t => (
+              <div key={t.id} className="text-[11px] text-[#e0e0e0] flex items-center gap-2">
+                <span className="w-[4px] h-[4px] rounded-full bg-[#ff5f57]"></span> {t.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button onClick={onDismiss} className="w-full py-2.5 bg-[var(--accent)] text-black rounded-lg text-[11px] font-bold hover:brightness-110 active:scale-[0.98] transition-all">
+        Let's Go 🚀
+      </button>
+    </motion.div>
+  );
+}
+
+function MicroJournal({ block, onSave, onSkip }) {
+  const [note, setNote] = useState('');
+  const [rating, setRating] = useState(0);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+      className="absolute inset-x-3 bottom-3 bg-[var(--acrylic-surface)] rounded-xl border border-[var(--border-strong)] p-4 shadow-2xl z-50 backdrop-blur-xl"
+    >
+      <div className="mb-3 flex justify-between items-center">
+        <h3 className="font-mono text-[12px] text-white">Micro-Journal</h3>
+        <span className="text-[10px] text-[#888] truncate ml-2 max-w-[120px]">{block?.label}</span>
+      </div>
+
+      <div className="flex justify-between px-2 mb-4">
+        {['😴', '😐', '🙂', '😊', '🚀'].map((emoji, idx) => (
+          <button 
+            key={idx}
+            onClick={() => setRating(idx + 1)}
+            className={`text-[18px] transition-transform hover:scale-125 ${rating === idx + 1 ? 'scale-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] grayscale-0' : 'grayscale opacity-50'}`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+
+      <input 
+        type="text" 
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder="1-line summary... (optional)"
+        className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-md px-3 py-2 text-[11px] text-white outline-none focus:border-[var(--accent)] mb-4 transition-colors"
+        onKeyDown={e => { if(e.key === 'Enter') onSave(note, rating); }}
+      />
+
+      <div className="flex gap-2">
+        <button onClick={onSkip} className="flex-1 py-2 text-[10px] text-[#888] hover:text-white transition-colors">Skip</button>
+        <button onClick={() => onSave(note, rating)} className="flex-1 py-2 bg-[var(--accent)] text-black rounded-lg text-[11px] font-bold hover:brightness-110 transition-all">Save</button>
+      </div>
+    </motion.div>
+  );
+}
+
 function WidgetRoot() {
   const now = useClock();
   const { tasks, addTask, toggleTask } = useTaskStore();
@@ -50,6 +140,9 @@ function WidgetRoot() {
   const [colors, setColors] = useState({});
   const [viewState, setViewState] = useState('loading'); // loading, setup, full, mini
   const [autoTemplate, setAutoTemplate] = useState(null);
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [journalingBlock, setJournalingBlock] = useState(null);
 
   // Global Pomodoro Timer State
   const [pomoActive, setPomoActive] = useState(false);
@@ -293,8 +386,15 @@ function WidgetRoot() {
     const dateKey = fmtDateKey(today);
     await window.tracker?.saveDailyRoutine?.(dateKey, updated);
 
-    if (status === 'done') {
-      const block = routine.find(b => b.id === id);
+    const block = routine.find(b => b.id === id);
+
+    if (status === 'done' && block) {
+      if (viewState === 'mini') {
+        window.tracker?.expandWidget?.();
+        setViewState('full');
+      }
+      setJournalingBlock(block);
+
       if (block?.linkedOutcomeId) {
         const goalsData = await window.tracker?.getGoals?.() || [];
         let modified = false;
@@ -315,6 +415,23 @@ function WidgetRoot() {
           await window.tracker?.saveGoals?.(newGoals);
         }
       }
+    } else if (block) {
+      window.tracker?.logActivity?.(block, status);
+    }
+  };
+
+  const handleSaveJournal = (note, rating) => {
+    if (journalingBlock) {
+      const loggedBlock = { ...journalingBlock, note, rating };
+      window.tracker?.logActivity?.(loggedBlock, 'done');
+      setJournalingBlock(null);
+    }
+  };
+
+  const handleSkipJournal = () => {
+    if (journalingBlock) {
+      window.tracker?.logActivity?.(journalingBlock, 'done');
+      setJournalingBlock(null);
     }
   };
 
@@ -345,12 +462,15 @@ function WidgetRoot() {
       <motion.div variants={widgetVariants} initial="hidden" animate="visible" exit="hidden" className="flex flex-col h-full rounded-[12px] overflow-hidden" style={{ background: 'var(--acrylic-base)', '--accent': currentBlockColor }}>
         <DailySetup 
           autoTemplate={autoTemplate}
-          onComplete={(r, tasksToAdd) => { 
+          onComplete={async (r, tasksToAdd) => { 
             setRoutine(r); 
             if (tasksToAdd && tasksToAdd.length > 0) {
               tasksToAdd.forEach(t => addTask(t));
             }
+            const s = await window.tracker?.getStreak?.();
+            setStreak(s || 0);
             setViewState('full'); 
+            setShowBriefing(true);
           }} 
         />
       </motion.div>
@@ -363,7 +483,7 @@ function WidgetRoot() {
   };
 
   if (viewState === 'timetable') {
-    return <Timetable routine={routine} onUpdateRoutine={handleUpdateDailyRoutine} categories={categories} goals={goals} onBack={() => setViewState('full')} />;
+    return <Timetable routine={routine} onUpdateRoutine={handleUpdateDailyRoutine} categories={categories} goals={goals} onBack={() => setViewState('full')} onRestartSetup={() => setViewState('setup')} />;
   }
 
   if (viewState === 'mini') {
@@ -450,7 +570,27 @@ function WidgetRoot() {
         </div>
       </div>
 
-      <DayProgress done={done} total={total} />
+      <AnimatePresence>
+        {showBriefing && (
+          <MorningBriefing 
+            streak={streak} 
+            nextBlocks={routine.filter(b => b.status === 'pending').slice(0, 3)}
+            dueTasks={goals.filter(g => g.type === 'focus' && !g.done && getDueStatus(g.dueDate)?.text?.includes('today'))}
+            onDismiss={() => setShowBriefing(false)} 
+          />
+        )}
+        {journalingBlock && (
+          <MicroJournal 
+            block={journalingBlock} 
+            onSave={handleSaveJournal} 
+            onSkip={handleSkipJournal} 
+          />
+        )}
+      </AnimatePresence>
+
+      <div style={{ padding: '4px' }}>
+        <DayProgress routine={routine} now={now} />
+      </div>
     </motion.div>
   );
 }

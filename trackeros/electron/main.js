@@ -2,6 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, globalShortcut, screen, Notification, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
 const isDev = process.env.NODE_ENV === 'development';

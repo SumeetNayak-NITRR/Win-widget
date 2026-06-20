@@ -75,7 +75,7 @@ function BlockEditForm({ block, categories, goals, defaultGoalId, onSave, onCanc
   );
 }
 
-export default function Timetable({ routine, onUpdateRoutine, categories, goals, onBack }) {
+export default function Timetable({ routine, onUpdateRoutine, categories, goals, onBack, onRestartSetup }) {
   const now = useClock();
   const [editingBlock, setEditingBlock] = useState(null); // null | 'new' | block object
 
@@ -115,12 +115,19 @@ export default function Timetable({ routine, onUpdateRoutine, categories, goals,
     >
       <div className="flex items-center justify-between mb-4 mt-2">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">Full Timetable</h2>
-        <button onClick={onBack} className="p-1 rounded-md bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-[var(--text-secondary)]" title="Back to Widget">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {onRestartSetup && (
+            <button onClick={onRestartSetup} className="px-2 py-1 text-[10px] font-medium rounded-md bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-[var(--text-secondary)] hover:text-white" title="Change Template for Today">
+              Change Template
+            </button>
+          )}
+          <button onClick={onBack} className="p-1 rounded-md bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-[var(--text-secondary)]" title="Back to Widget">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 pb-4">

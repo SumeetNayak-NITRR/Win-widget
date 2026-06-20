@@ -44,8 +44,10 @@ export function useTaskStore() {
     };
   }, [tasks, dateKey]);
 
-  const addTask = useCallback((text) => {
-    if (!text.trim()) return;
+  const addTask = useCallback((payload) => {
+    const isObj = typeof payload === 'object' && payload !== null;
+    const text = isObj ? payload.text : payload;
+    if (!text || !text.trim()) return;
     
     let dueTime = null;
     let cleanText = text.trim();
@@ -61,6 +63,7 @@ export function useTaskStore() {
       text: cleanText,
       dueTime,
       done: false,
+      linkedOutcomeId: isObj ? payload.linkedOutcomeId : undefined,
       createdAt: new Date().toISOString(),
       completedAt: null,
     };

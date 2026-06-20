@@ -117,7 +117,7 @@ export default function MiniWidget({ block, now, onExpand, onUpdateStatus, pomoS
           {block && block.status !== 'done' && block.status !== 'skipped' ? (
             <>
               <button 
-                onClick={(e) => { e.stopPropagation(); window.tracker?.logActivity?.(block, 'done'); onUpdateStatus?.(block.id, 'done'); }}
+                onClick={(e) => { e.stopPropagation(); onUpdateStatus?.(block.id, 'done'); }}
                 className="hover:scale-105 active:scale-95 transition-all flex items-center justify-center font-sans font-medium text-[10px]"
                 style={{
                   height: '24px', padding: '0 8px', borderRadius: '12px',
@@ -130,7 +130,7 @@ export default function MiniWidget({ block, now, onExpand, onUpdateStatus, pomoS
                 ✅ Done
               </button>
               <button 
-                onClick={(e) => { e.stopPropagation(); window.tracker?.logActivity?.(block, 'skipped'); onUpdateStatus?.(block.id, 'skipped'); }}
+                onClick={(e) => { e.stopPropagation(); onUpdateStatus?.(block.id, 'skipped'); }}
                 className="hover:scale-105 active:scale-95 transition-all flex items-center justify-center font-sans font-medium text-[10px]"
                 style={{
                   height: '24px', padding: '0 8px', borderRadius: '12px',

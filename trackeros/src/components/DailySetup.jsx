@@ -6,24 +6,28 @@ export default function DailySetup({ onComplete, autoTemplate }) {
   const [step, setStep] = useState(1);
   const [templates, setTemplates] = useState({});
   const [categories, setCategories] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(autoTemplate || 'Weekday');
   const [routineBlocks, setRoutineBlocks] = useState([]);
   
   const [carriedTasks, setCarriedTasks] = useState([]);
   const [newTaskInput, setNewTaskInput] = useState('');
+  const [newTaskGoal, setNewTaskGoal] = useState('');
   const [tasksToAdd, setTasksToAdd] = useState([]);
 
   const [editingBlock, setEditingBlock] = useState(null);
-  const [editForm, setEditForm] = useState({ label: '', start: '', end: '', category: 'study' });
+  const [editForm, setEditForm] = useState({ label: '', topic: '', start: '', end: '', category: 'study', linkedOutcomeId: '' });
 
   useEffect(() => {
     Promise.all([
       window.tracker?.getTemplates?.(),
       window.tracker?.getCategories?.(),
-      window.tracker?.getTasks?.(fmtDateKey(new Date()))
-    ]).then(([t, cats, tasks]) => {
+      window.tracker?.getTasks?.(fmtDateKey(new Date())),
+      window.tracker?.getGoals?.()
+    ]).then(([t, cats, tasks, g]) => {
       setTemplates(t || {});
       setCategories(cats || []);
+      setGoals(g || []);
       if (tasks) setCarriedTasks(tasks.filter(tk => !tk.done));
 
       let initialTemplate = selectedTemplate;
@@ -56,7 +60,7 @@ export default function DailySetup({ onComplete, autoTemplate }) {
     // App.jsx will call addTask() for each string we pass. Carried tasks are already in store, so we only pass the NEW tasks.
     const finalNewTasks = [...tasksToAdd];
     if (newTaskInput.trim()) {
-      finalNewTasks.push(newTaskInput.trim());
+      finalNewTasks.push({ text: newTaskInput.trim(), linkedOutcomeId: newTaskGoal });
     }
 
     window.tracker?.finishSetup?.();
@@ -91,7 +95,7 @@ export default function DailySetup({ onComplete, autoTemplate }) {
 
   const openEdit = (block) => {
     setEditingBlock(block.id);
-    setEditForm({ label: block.label, start: block.start, end: block.end, category: block.category });
+    setEditForm({ label: block.label, topic: block.topic || '', start: block.start, end: block.end, category: block.category, linkedOutcomeId: block.linkedOutcomeId || '' });
   };
 
   return (
@@ -144,7 +148,8 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                   if (editingBlock === block.id) {
                     return (
                       <div key={block.id} className="p-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[var(--accent)] flex flex-col gap-2">
-                        <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs outline-none" value={editForm.label} onChange={e=>setEditForm({...editForm, label: e.target.value})} placeholder="Label" />
+                        <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs outline-none text-[var(--text-primary)]" value={editForm.label} onChange={e=>setEditForm({...editForm, label: e.target.value})} placeholder="Label" />
+                        <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[11px] outline-none text-[var(--text-secondary)]" value={editForm.topic} onChange={e=>setEditForm({...editForm, topic: e.target.value})} placeholder="Focus area / to-do (optional)" />
                         <div className="flex flex-col gap-1">
                           <div className="flex gap-1 items-center text-[10px] text-[var(--text-secondary)]">
                             Start: <input type="time" className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.start} onChange={e=>setEditForm({...editForm, start: e.target.value})} />
@@ -153,11 +158,25 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                             End: <input type="time" className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.end} onChange={e=>setEditForm({...editForm, end: e.target.value})} />
                           </div>
                         </div>
-                        <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none" value={editForm.category} onChange={e=>setEditForm({...editForm, category: e.target.value})}>
-                          {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
-                        </select>
+                        <div className="flex gap-2">
+                          <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.category} onChange={e=>setEditForm({...editForm, category: e.target.value})}>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                          </select>
+                          <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.linkedOutcomeId} onChange={e=>setEditForm({...editForm, linkedOutcomeId: e.target.value})}>
+                            <option value="">No Goal</option>
+                            {goals.filter(g => g.type === 'northstar').map(ns => {
+                              const children = goals.filter(g => g.type === 'outcome' && g.parentId === ns.id);
+                              return (
+                                <React.Fragment key={ns.id}>
+                                  <option value={ns.id}>★ {ns.icon} {ns.label}</option>
+                                  {children.map(oc => ( <option key={oc.id} value={oc.id}>&nbsp;&nbsp;&nbsp;↳ {oc.label}</option> ))}
+                                </React.Fragment>
+                              );
+                            })}
+                          </select>
+                        </div>
                         <div className="flex justify-end gap-1 mt-1">
-                          <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)]">Cancel</button>
+                          <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)] text-[var(--text-primary)]">Cancel</button>
                           <button onClick={saveBlock} className="text-[10px] px-2 py-1 rounded bg-[var(--accent)] text-black font-medium">Save</button>
                         </div>
                       </div>
@@ -167,7 +186,13 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                     <div key={block.id} className="flex flex-col p-2 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[var(--border-subtle)]">
                       <div className="flex items-start justify-between">
                         <div className="flex flex-col min-w-0 pr-1">
-                          <div className="text-xs truncate">{block.label}</div>
+                          <div className="text-xs truncate flex items-center gap-1">
+                            {block.label}
+                            {block.linkedOutcomeId && (
+                              <span className="text-[8px] bg-[rgba(255,255,255,0.1)] px-1 rounded text-[var(--text-secondary)]" title="Linked to goal">★</span>
+                            )}
+                          </div>
+                          {block.topic && <div className="text-[10px] text-[var(--text-secondary)] truncate mt-0.5">{block.topic}</div>}
                           <div className="text-[9px] text-[var(--text-tertiary)] font-mono">{block.start} - {block.end}</div>
                         </div>
                         <button onClick={() => deleteBlock(block.id)} className="text-red-400 hover:text-red-300 px-1 text-[10px]">✕</button>
@@ -183,7 +208,8 @@ export default function DailySetup({ onComplete, autoTemplate }) {
 
                 {editingBlock === 'new' && (
                   <div className="p-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[var(--accent)] flex flex-col gap-2">
-                    <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs outline-none" value={editForm.label} onChange={e=>setEditForm({...editForm, label: e.target.value})} placeholder="Label" />
+                    <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs outline-none text-[var(--text-primary)]" value={editForm.label} onChange={e=>setEditForm({...editForm, label: e.target.value})} placeholder="Label" />
+                    <input className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[11px] outline-none text-[var(--text-secondary)]" value={editForm.topic} onChange={e=>setEditForm({...editForm, topic: e.target.value})} placeholder="Focus area / to-do (optional)" />
                     <div className="flex flex-col gap-1">
                       <div className="flex gap-1 items-center text-[10px] text-[var(--text-secondary)]">
                         Start: <input type="time" className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.start} onChange={e=>setEditForm({...editForm, start: e.target.value})} />
@@ -192,11 +218,25 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                         End: <input type="time" className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.end} onChange={e=>setEditForm({...editForm, end: e.target.value})} />
                       </div>
                     </div>
-                    <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none" value={editForm.category} onChange={e=>setEditForm({...editForm, category: e.target.value})}>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
-                    </select>
+                    <div className="flex gap-2">
+                      <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.category} onChange={e=>setEditForm({...editForm, category: e.target.value})}>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                      </select>
+                      <select className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded px-1 py-1 text-xs outline-none flex-1" value={editForm.linkedOutcomeId} onChange={e=>setEditForm({...editForm, linkedOutcomeId: e.target.value})}>
+                        <option value="">No Goal</option>
+                        {goals.filter(g => g.type === 'northstar').map(ns => {
+                          const children = goals.filter(g => g.type === 'outcome' && g.parentId === ns.id);
+                          return (
+                            <React.Fragment key={ns.id}>
+                              <option value={ns.id}>★ {ns.icon} {ns.label}</option>
+                              {children.map(oc => ( <option key={oc.id} value={oc.id}>&nbsp;&nbsp;&nbsp;↳ {oc.label}</option> ))}
+                            </React.Fragment>
+                          );
+                        })}
+                      </select>
+                    </div>
                     <div className="flex justify-end gap-1 mt-1">
-                      <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)]">Cancel</button>
+                      <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)] text-[var(--text-primary)]">Cancel</button>
                       <button onClick={saveBlock} className="text-[10px] px-2 py-1 rounded bg-[var(--accent)] text-black font-medium">Add</button>
                     </div>
                   </div>
@@ -205,7 +245,7 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                 {routineBlocks.length === 0 && editingBlock !== 'new' && <div className="text-xs text-[var(--text-disabled)] italic mt-2">No blocks for today.</div>}
                 
                 {editingBlock !== 'new' && (
-                  <button onClick={() => { setEditingBlock('new'); setEditForm({ label: '', start: '12:00', end: '13:00', category: 'study' }); }} className="mt-1 py-1.5 rounded-lg border border-dashed border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-medium)] text-[11px] transition-colors">
+                  <button onClick={() => { setEditingBlock('new'); setEditForm({ label: '', topic: '', start: '12:00', end: '13:00', category: 'study', linkedOutcomeId: '' }); }} className="mt-1 py-1.5 rounded-lg border border-dashed border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-medium)] text-[11px] transition-colors">
                     + Add New Block
                   </button>
                 )}
@@ -228,26 +268,52 @@ export default function DailySetup({ onComplete, autoTemplate }) {
 
               <div className="flex flex-col gap-1.5">
                 <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--text-disabled)]">Today's Focus</span>
-                {tasksToAdd.map((t, i) => (
-                  <div key={i} className="text-[11px] px-2 py-1.5 rounded-md bg-[rgba(76,194,255,0.05)] border border-[var(--accent)] text-white flex justify-between">
-                    <span className="truncate flex-1">• {t}</span>
-                    <button onClick={() => setTasksToAdd(prev => prev.filter((_, idx) => idx !== i))} className="text-[10px] text-red-400 opacity-60 hover:opacity-100 ml-2 px-1">✕</button>
-                  </div>
-                ))}
+                {tasksToAdd.map((t, i) => {
+                  const label = t.text || t;
+                  const gLabel = t.linkedOutcomeId ? goals.find(g => g.id === t.linkedOutcomeId)?.label : null;
+                  return (
+                    <div key={i} className="text-[11px] px-2 py-1.5 rounded-md bg-[rgba(76,194,255,0.05)] border border-[var(--accent)] text-white flex justify-between items-center">
+                      <div className="truncate flex-1 flex items-center gap-2">
+                        <span>• {label}</span>
+                        {gLabel && <span className="text-[8px] bg-[rgba(255,255,255,0.1)] px-1 rounded text-[var(--text-secondary)] truncate max-w-[80px]">★ {gLabel}</span>}
+                      </div>
+                      <button onClick={() => setTasksToAdd(prev => prev.filter((_, idx) => idx !== i))} className="text-[10px] text-red-400 opacity-60 hover:opacity-100 ml-2 px-1">✕</button>
+                    </div>
+                  );
+                })}
                 
-                <input 
-                  type="text" 
-                  value={newTaskInput}
-                  onChange={e => setNewTaskInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && newTaskInput.trim()) {
-                      setTasksToAdd([...tasksToAdd, newTaskInput.trim()]);
-                      setNewTaskInput('');
-                    }
-                  }}
-                  placeholder="Type a task and hit Enter..."
-                  className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded-md px-2 py-1.5 text-[11px] outline-none focus:border-[var(--accent)] mt-1 placeholder:text-[var(--text-tertiary)]"
-                />
+                <div className="flex gap-1 mt-1">
+                  <input 
+                    type="text" 
+                    value={newTaskInput}
+                    onChange={e => setNewTaskInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && newTaskInput.trim()) {
+                        setTasksToAdd([...tasksToAdd, { text: newTaskInput.trim(), linkedOutcomeId: newTaskGoal }]);
+                        setNewTaskInput('');
+                      }
+                    }}
+                    placeholder="Type a task and hit Enter..."
+                    className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded-md px-2 py-1.5 text-[11px] outline-none focus:border-[var(--accent)] flex-1 placeholder:text-[var(--text-tertiary)]"
+                  />
+                  <select 
+                    value={newTaskGoal} 
+                    onChange={e => setNewTaskGoal(e.target.value)}
+                    className="bg-[rgba(0,0,0,0.2)] border border-[var(--border-subtle)] rounded-md px-1 py-1.5 text-[10px] outline-none text-[var(--text-secondary)] w-[80px]"
+                    title="Link to goal (optional)"
+                  >
+                    <option value="">No Goal</option>
+                    {goals.filter(g => g.type === 'northstar').map(ns => {
+                      const children = goals.filter(g => g.type === 'outcome' && g.parentId === ns.id);
+                      return (
+                        <React.Fragment key={ns.id}>
+                          <option value={ns.id}>★ {ns.icon} {ns.label}</option>
+                          {children.map(oc => ( <option key={oc.id} value={oc.id}>↳ {oc.label}</option> ))}
+                        </React.Fragment>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             </motion.div>
           )}

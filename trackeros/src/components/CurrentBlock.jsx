@@ -100,12 +100,12 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
           ) : (
             <>
               <button 
-                onClick={() => { window.tracker?.logActivity?.(block, 'done'); onUpdateStatus?.(block.id, 'done'); }} 
+                onClick={() => onUpdateStatus?.(block.id, 'done')} 
                 className="text-[10px] opacity-60 hover:opacity-100 hover:text-green-400 transition-opacity"
                 title="Mark Done"
               >✅</button>
               <button 
-                onClick={() => { window.tracker?.logActivity?.(block, 'skipped'); onUpdateStatus?.(block.id, 'skipped'); }} 
+                onClick={() => onUpdateStatus?.(block.id, 'skipped')} 
                 className="text-[10px] opacity-60 hover:opacity-100 hover:text-red-400 transition-opacity"
                 title="Skip Block"
               >⏭️</button>
