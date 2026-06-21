@@ -26,7 +26,7 @@ export default function ScheduleConfig({ templates = {} }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ fontSize: '10px', color: 'var(--text-disabled)', marginBottom: '4px', lineHeight: 1.5 }}>
-        Assign a template to each day. TrackerOS will auto-load the right schedule every morning — no manual setup needed.
+        Assign a template to each day. Tracker will auto-load the right schedule every morning — no manual setup needed.
       </div>
 
       {DAYS.map(day => (
@@ -83,7 +83,7 @@ export default function ScheduleConfig({ templates = {} }) {
       )}
 
       <div style={{ fontSize: '10px', color: 'var(--text-disabled)', marginTop: '4px', padding: '6px 8px', background: 'rgba(255,255,255,0.015)', borderRadius: '5px', border: '0.5px solid var(--border-subtle)', lineHeight: 1.6 }}>
-        💡 If a day has no template assigned, TrackerOS will ask you to choose one during Daily Setup.
+        💡 If a day has no template assigned, Tracker will ask you to choose one during Daily Setup.
       </div>
     </div>
   );

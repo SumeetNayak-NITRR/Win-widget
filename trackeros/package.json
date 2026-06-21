@@ -1,7 +1,7 @@
 {
   "name": "trackeros",
-  "productName": "TrackerOS",
-  "version": "1.0.2",
+  "productName": "Tracker",
+  "version": "1.0.0",
   "description": "Windows 11 productivity widget — daily routine tracker + floating tasks",
   "main": "electron/main.js",
   "private": true,

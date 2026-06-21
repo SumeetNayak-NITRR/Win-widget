@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fmtDateKey, getISOWeekStr } from '../utils/time';
-import WeeklyReview from './WeeklyReview';
 import GoalManager from './GoalManager';
 
 function getWeekDays() {
@@ -28,7 +27,7 @@ export default function StatsPanel() {
   const [monthActivity, setMonthActivity] = useState({});
   const [goals, setGoals] = useState([]);
   const [templates, setTemplates] = useState({});
-  const [showReview, setShowReview] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
   const weekDays = getWeekDays();
   const todayKey = fmtDateKey(new Date());
 
@@ -80,15 +79,25 @@ export default function StatsPanel() {
     const id = setInterval(load, 30000);
     // Re-fetch immediately every time the stats window is opened
     const unsubscribe = window.tracker?.onStatsRefresh?.(() => load());
+    const unsubNudge = window.tracker?.onShowReviewNudge?.(() => setShowNudge(true));
+    const unsubComplete = window.tracker?.onReviewCompleted?.(() => setShowNudge(false));
     return () => {
       clearInterval(id);
       if (unsubscribe) unsubscribe();
+      if (unsubNudge) unsubNudge();
+      if (unsubComplete) unsubComplete();
     };
   }, [load]);
 
-  const done  = todayTasks.filter(t => t.done).length;
-  const total = todayTasks.length;
+  const done  = todayTasks.filter(t => t.done && !t.linkedOutcomeId).length;
+  const total = todayTasks.filter(t => !t.linkedOutcomeId).length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  const toggleTask = async (taskId) => {
+    const updated = todayTasks.map(t => t.id === taskId ? { ...t, done: !t.done, completedAt: !t.done ? new Date().toISOString() : null } : t);
+    setTodayTasks(updated);
+    await window.tracker?.saveTasks?.(todayKey, updated);
+  };
 
   return (
     <div className="acrylic-root" style={{
@@ -106,6 +115,40 @@ export default function StatsPanel() {
         zIndex: 10, pointerEvents: 'none', borderRadius: '12px 12px 0 0',
       }} />
 
+      {/* Review Nudge Banner */}
+      {/* {showNudge && (
+        <motion.div
+          initial={{ y: -40 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-2"
+          style={{
+            background: 'rgba(77,142,255,0.08)',
+            borderBottom: '0.5px solid rgba(77,142,255,0.2)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <span className="font-mono text-[10px] text-white">📋 Your weekly review is ready</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowNudge(false);
+                window.tracker?.openWeeklyReview?.();
+              }}
+              className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#4d8eff] text-black font-bold transition-all hover:brightness-110 active:scale-95"
+            >
+              Start →
+            </button>
+            <button
+              onClick={() => setShowNudge(false)}
+              className="font-mono text-[9px] px-1.5 py-0.5 rounded text-[#888] hover:text-[#bbb] transition-colors"
+            >
+              Later
+            </button>
+          </div>
+        </motion.div>
+      )} */}
+
       {/* Title bar */}
       <div className="flex items-center justify-between px-[14px]" style={{
         height: '36px', borderBottom: '0.5px solid var(--divider)',
@@ -115,18 +158,20 @@ export default function StatsPanel() {
         <span className="font-mono uppercase" style={{
           fontSize: '9px', color: 'var(--text-disabled)', letterSpacing: '0.20em',
         }}>
-          TrackerOS · Stats
+          Tracker · Stats
         </span>
         <button
           id="btn-stats-close"
           onClick={() => window.tracker.closeStats()}
-          style={{
-            WebkitAppRegion: 'no-drag',
-            width: '11px', height: '11px', borderRadius: '50%',
-            background: '#ff5f57', border: 'none', cursor: 'pointer', padding: 0,
-            boxShadow: '0 0 6px #ff5f5755',
-          }}
-        />
+          className="text-[#666] hover:text-[#ff4a4a] transition-colors flex items-center justify-center p-1 rounded-md hover:bg-[rgba(255,74,74,0.1)]"
+          style={{ WebkitAppRegion: 'no-drag' }}
+          title="Close"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       {/* Tab bar */}
@@ -153,30 +198,20 @@ export default function StatsPanel() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
-        <button onClick={() => setShowReview(true)}
-          className="font-mono uppercase text-[#4d8eff] hover:text-white transition-colors"
+        {/* <button onClick={() => window.tracker?.openWeeklyReview?.()}
+          className="font-mono uppercase text-[#3a3a3a] hover:text-[#4d8eff] transition-colors"
           style={{ fontSize: '9px', letterSpacing: '0.1em', padding: '9px 0', background: 'transparent', border: 'none', cursor: 'pointer' }}
         >
-          Review
-        </button>
+          Weekly Review →
+        </button> */}
       </div>
 
-      {/* Content */}
+      {/* Content Area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
         {activeTab === 'today' && <TodayTab done={done} total={total} pct={pct} tasks={todayTasks} weekDays={weekDays} monthActivity={monthActivity} todayKey={todayKey} />}
         {activeTab === 'week'  && <WeekTab weekDays={weekDays} logs={logs} todayKey={todayKey} todayDone={done} todayTotal={total} weekActivity={weekActivity} monthActivity={monthActivity} />}
-        {activeTab === 'goals' && <GoalManager goals={goals} setGoals={(g) => { setGoals(g); window.tracker?.saveGoals?.(g); }} />}
+        {activeTab === 'goals' && <GoalManager goals={goals} setGoals={(g) => { setGoals(g); window.tracker?.saveGoals?.(g); }} tasks={todayTasks.filter(t => !!t.linkedOutcomeId)} onToggleTask={toggleTask} onAddTask={async (text, linkedOutcomeId) => { const newTask = { id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, text, done: false, linkedOutcomeId, createdAt: new Date().toISOString(), completedAt: null }; const updated = [...todayTasks, newTask]; setTodayTasks(updated); await window.tracker?.saveTasks?.(todayKey, updated); }} />}
       </div>
-      {showReview && (
-        <WeeklyReview
-          logs={logs}
-          goals={goals}
-          templates={templates}
-          onComplete={() => setShowReview(false)}
-          onSkip={() => setShowReview(false)}
-          onSaveGoals={(g) => window.tracker?.saveGoals?.(g)}
-        />
-      )}
     </div>
   );
 }

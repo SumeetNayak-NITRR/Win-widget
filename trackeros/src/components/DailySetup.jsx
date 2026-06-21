@@ -95,7 +95,7 @@ export default function DailySetup({ onComplete, autoTemplate }) {
 
   const openEdit = (block) => {
     setEditingBlock(block.id);
-    setEditForm({ label: block.label, topic: block.topic || '', start: block.start, end: block.end, category: block.category, linkedOutcomeId: block.linkedOutcomeId || '' });
+    setEditForm({ label: block.label, topic: block.topic || '', start: block.start, end: block.end, category: block.category, linkedOutcomeId: block.linkedOutcomeId || '', isMaintenance: !!block.isMaintenance });
   };
 
   return (
@@ -175,6 +175,10 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                             })}
                           </select>
                         </div>
+                        <label className="flex items-center gap-2 mt-1" style={{ fontSize: '10px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={editForm.isMaintenance} onChange={e => setEditForm({ ...editForm, isMaintenance: e.target.checked })} />
+                          Maintenance / Survival Block
+                        </label>
                         <div className="flex justify-end gap-1 mt-1">
                           <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)] text-[var(--text-primary)]">Cancel</button>
                           <button onClick={saveBlock} className="text-[10px] px-2 py-1 rounded bg-[var(--accent)] text-black font-medium">Save</button>
@@ -235,6 +239,10 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                         })}
                       </select>
                     </div>
+                    <label className="flex items-center gap-2 mt-1" style={{ fontSize: '10px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={editForm.isMaintenance} onChange={e => setEditForm({ ...editForm, isMaintenance: e.target.checked })} />
+                      Maintenance / Survival Block
+                    </label>
                     <div className="flex justify-end gap-1 mt-1">
                       <button onClick={() => setEditingBlock(null)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)] text-[var(--text-primary)]">Cancel</button>
                       <button onClick={saveBlock} className="text-[10px] px-2 py-1 rounded bg-[var(--accent)] text-black font-medium">Add</button>
@@ -245,7 +253,7 @@ export default function DailySetup({ onComplete, autoTemplate }) {
                 {routineBlocks.length === 0 && editingBlock !== 'new' && <div className="text-xs text-[var(--text-disabled)] italic mt-2">No blocks for today.</div>}
                 
                 {editingBlock !== 'new' && (
-                  <button onClick={() => { setEditingBlock('new'); setEditForm({ label: '', topic: '', start: '12:00', end: '13:00', category: 'study', linkedOutcomeId: '' }); }} className="mt-1 py-1.5 rounded-lg border border-dashed border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-medium)] text-[11px] transition-colors">
+                  <button onClick={() => { setEditingBlock('new'); setEditForm({ label: '', topic: '', start: '12:00', end: '13:00', category: 'study', linkedOutcomeId: '', isMaintenance: false }); }} className="mt-1 py-1.5 rounded-lg border border-dashed border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-medium)] text-[11px] transition-colors">
                     + Add New Block
                   </button>
                 )}

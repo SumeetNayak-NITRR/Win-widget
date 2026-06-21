@@ -303,7 +303,7 @@ export default function GoalCard({ block, embedded = false }) {
                       )}
 
                       {due && !foc.done && (
-                        <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: due.color }}>
+                        <span title={`Due: ${foc.dueDate}`} style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: due.color, cursor: 'help' }}>
                           {due.text}
                         </span>
                       )}

@@ -7,8 +7,8 @@ import { sortBlocks } from '../utils/schedule';
 
 function BlockEditForm({ block, categories, goals, defaultGoalId, onSave, onCancel }) {
   const [form, setForm] = useState(block
-    ? { label: block.label, start: block.start, end: block.end, category: block.category, emoji: block.emoji || '', linkedOutcomeId: block.linkedOutcomeId || '', topic: block.topic || '' }
-    : { label: '', start: '09:00', end: '10:00', category: 'study', emoji: '', linkedOutcomeId: defaultGoalId || '', topic: '' }
+    ? { label: block.label, start: block.start, end: block.end, category: block.category, emoji: block.emoji || '', linkedOutcomeId: block.linkedOutcomeId || '', topic: block.topic || '', isMaintenance: !!block.isMaintenance }
+    : { label: '', start: '09:00', end: '10:00', category: 'study', emoji: '', linkedOutcomeId: defaultGoalId || '', topic: '', isMaintenance: false }
   );
 
   return (
@@ -63,6 +63,18 @@ function BlockEditForm({ block, categories, goals, defaultGoalId, onSave, onCanc
             );
           })}
         </select>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', paddingLeft: '2px' }}>
+        <input 
+          type="checkbox" 
+          checked={form.isMaintenance} 
+          onChange={e => setForm(f => ({ ...f, isMaintenance: e.target.checked }))} 
+          style={{ accentColor: 'var(--accent)' }} 
+        />
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+          Maintenance / Survival Block (Ungraded)
+        </label>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>

@@ -40,7 +40,7 @@ export default function LiveClock() {
           fontSize: '9px', color: 'var(--text-disabled)',
           lineHeight: 1.4, letterSpacing: '0.09em',
         }}>
-          NITRR · 2026
+          {now.getFullYear()}
         </div>
       </div>
     </div>

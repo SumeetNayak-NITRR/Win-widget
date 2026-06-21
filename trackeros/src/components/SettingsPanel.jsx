@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import TemplateEditor from './TemplateEditor';
 import ScheduleConfig from './ScheduleConfig';
 
-export default function SettingsPanel({ onClose }) {
+export default function SettingsPanel({ onClose, onViewOnboarding }) {
   const [templates, setTemplates] = useState({});
   const [colors, setColors] = useState({});
   const [categories, setCategories] = useState([]);
@@ -149,7 +149,7 @@ export default function SettingsPanel({ onClose }) {
             <div className="flex items-center justify-between p-2 rounded bg-white/[0.02] border border-[var(--border-subtle)]">
               <div className="flex flex-col gap-0.5 pr-2">
                 <span className="font-sans text-[12px] font-medium text-[var(--text-primary)]">Run on Startup</span>
-                <span className="font-sans text-[10px] text-[var(--text-tertiary)] leading-tight">Launch TrackerOS automatically when you log in.</span>
+                <span className="font-sans text-[10px] text-[var(--text-tertiary)] leading-tight">Launch Tracker automatically when you log in.</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -233,9 +233,19 @@ export default function SettingsPanel({ onClose }) {
             {/* Notification Permission Warning */}
             {typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification.permission === 'denied' && (
               <div className="p-2.5 rounded bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] text-[#ff7b72] text-[10px] leading-relaxed font-sans">
-                ⚠️ Notification permissions are currently blocked in Windows settings. TrackerOS will not be able to trigger desktop notifications when your routine blocks change.
+                ⚠️ Notification permissions are currently blocked in Windows settings. Tracker will not be able to trigger desktop notifications when your routine blocks change.
               </div>
             )}
+
+            {/* View Onboarding */}
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={onViewOnboarding}
+                className="text-[9px] font-mono text-[#3a3a3a] hover:text-[#666] transition-colors uppercase tracking-wider"
+              >
+                View onboarding guide
+              </button>
+            </div>
           </div>
         )}
 

@@ -16,7 +16,7 @@ function setupTray(app, mainWin, statsWin) {
   }
 
   const tray = new Tray(img);
-  tray.setToolTip('TrackerOS');
+  tray.setToolTip('Tracker');
 
   const buildMenu = () => Menu.buildFromTemplate([
     {
@@ -51,7 +51,7 @@ function setupTray(app, mainWin, statsWin) {
     },
     { type: 'separator' },
     {
-      label: 'Quit TrackerOS',
+      label: 'Quit Tracker',
       click: () => app.quit(),
     },
   ]);

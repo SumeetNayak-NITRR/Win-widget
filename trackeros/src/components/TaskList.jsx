@@ -86,7 +86,7 @@ function TaskList({ tasks, onToggle, onAdd }) {
                 )}
               </div>
               {task.dueTime && !task.done && (
-                <span className="font-mono" style={{ fontSize: '9px', color: 'var(--accent)' }}>
+                <span title={`Due at ${task.dueTime}`} className="font-mono" style={{ fontSize: '9px', color: 'var(--accent)', cursor: 'help' }}>
                   {task.dueTime}
                 </span>
               )}

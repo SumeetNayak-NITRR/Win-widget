@@ -204,6 +204,16 @@ function BlockEditForm({ block, categories, goals, onSave, onCancel }) {
           Linking a goal shows the Goal Card during this block. Create new goals in the Stats menu.
         </div>
       </div>
+      <div style={{ borderTop: '0.5px solid var(--border-subtle)', paddingTop: '8px', marginTop: '4px', marginBottom: '4px' }}>
+        <label className="flex items-center gap-2" style={{ fontSize: '10px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <input 
+            type="checkbox" 
+            checked={form.isMaintenance} 
+            onChange={e => setForm(f => ({ ...f, isMaintenance: e.target.checked }))} 
+          />
+          Maintenance / Survival Block (Ungraded)
+        </label>
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>
         <button onClick={onCancel}

@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { fmtTime, minsLeft, blockProgress, toMin } from '../utils/time';
 import Pomodoro from './Pomodoro';
 import GoalCard from './GoalCard';
 
-export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) {
+export default function CurrentBlock({ block, now, onUpdateStatus, pomoState, tasks, onToggleTask, onEarlyComplete }) {
+  const [showEarlyCompletion, setShowEarlyCompletion] = useState(false);
+  const [earlyMins, setEarlyMins] = useState(0);
+
   if (!block) {
     return (
       <div style={{
@@ -22,7 +25,22 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
   }
 
   const pct = blockProgress(block, now);
-  const remaining = minsLeft(block.end, now);
+  const remainingStr = minsLeft(block.end, now);
+  let remainingNum = 0;
+  if (remainingStr.endsWith('m')) {
+    remainingNum = parseInt(remainingStr, 10);
+  } else if (remainingStr.endsWith('h')) {
+    remainingNum = parseFloat(remainingStr) * 60;
+  }
+
+  const handleMarkDone = () => {
+    if (remainingNum > 5) {
+      setEarlyMins(remainingNum);
+      setShowEarlyCompletion(true);
+    } else {
+      onUpdateStatus?.(block.id, 'done');
+    }
+  };
 
   return (
     <div
@@ -71,6 +89,30 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
 
       <GoalCard embedded block={block} />
 
+      {/* Block-specific Tasks */}
+      {tasks && tasks.length > 0 && (
+        <div className="mb-2 mt-1 flex flex-col gap-1.5 bg-[rgba(0,0,0,0.2)] rounded-lg p-2 border border-[rgba(255,255,255,0.03)]">
+          {tasks.map(task => (
+            <div key={task.id} className="flex items-start gap-2 group">
+              <button
+                onClick={() => onToggleTask?.(task.id)}
+                className={`w-3.5 h-3.5 rounded-[3px] flex-shrink-0 flex items-center justify-center mt-[1px] transition-all
+                  ${task.done ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)] border-transparent' : 'border border-[rgba(255,255,255,0.3)] bg-white/5'}
+                `}
+              >
+                {task.done && <span className="text-[9px] text-black font-bold">✓</span>}
+              </button>
+              <span className={`text-[11px] leading-snug flex-1 ${task.done ? 'text-[#666] line-through' : 'text-[#ddd]'}`}>
+                {task.text}
+              </span>
+              {task.carriedOver && !task.done && (
+                <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-[rgba(245,158,11,0.12)] text-[#f59e0b] border border-[rgba(245,158,11,0.2)] flex-shrink-0">↩ due</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Progress bar */}
       <div style={{
         height: '2px', background: 'rgba(255,255,255,0.06)',
@@ -100,7 +142,7 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
           ) : (
             <>
               <button 
-                onClick={() => onUpdateStatus?.(block.id, 'done')} 
+                onClick={handleMarkDone} 
                 className="text-[10px] opacity-60 hover:opacity-100 hover:text-green-400 transition-opacity"
                 title="Mark Done"
               >✅</button>
@@ -115,9 +157,38 @@ export default function CurrentBlock({ block, now, onUpdateStatus, pomoState }) 
         <div className="font-mono text-right" style={{
           fontSize: '9px', color: 'var(--accent)',
         }}>
-          {remaining}
+          {remainingStr}
         </div>
       </div>
+
+      {/* Early Completion Overlay */}
+      {showEarlyCompletion && (
+        <div className="absolute inset-0 bg-[var(--acrylic-surface)] backdrop-blur-md z-10 p-3 flex flex-col justify-center border border-[rgba(77,142,255,0.2)]" style={{ borderRadius: '0 8px 8px 0' }}>
+          <div className="font-mono text-[10px] text-white mb-2 text-center">
+            Finished {earlyMins}m early. Now what?
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <button 
+              onClick={() => onEarlyComplete?.(block.id, earlyMins, 'next')}
+              className="text-[10px] font-sans bg-[#4d8eff] text-black rounded py-1 hover:brightness-110 font-medium"
+            >
+              Start Next Block
+            </button>
+            <button 
+              onClick={() => onEarlyComplete?.(block.id, earlyMins, 'rest')}
+              className="text-[10px] font-sans bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-[#ddd] rounded py-1 hover:bg-[rgba(255,255,255,0.1)]"
+            >
+              Use time to Rest
+            </button>
+            <button 
+              onClick={() => onEarlyComplete?.(block.id, earlyMins, 'pending')}
+              className="text-[10px] font-sans bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-[#ddd] rounded py-1 hover:bg-[rgba(255,255,255,0.1)]"
+            >
+              Do Pending Work
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

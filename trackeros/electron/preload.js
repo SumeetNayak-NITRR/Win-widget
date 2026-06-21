@@ -70,4 +70,30 @@ contextBridge.exposeInMainWorld('tracker', {
   },
   restartAndUpdate: () => ipcRenderer.send('restart-app'),
   setSetupMode: () => ipcRenderer.send('set-setup-mode'),
+
+  // Weekly Review
+  getReviewWeek:      ()         => ipcRenderer.invoke('get-review-week'),
+  setReviewWeek:      (week)     => ipcRenderer.invoke('set-review-week', week),
+  getWeekActivity:    ()         => ipcRenderer.invoke('get-week-activity'),
+  openWeeklyReview:   ()         => ipcRenderer.send('open-weekly-review'),
+  closeWeeklyReview:  ()         => ipcRenderer.send('close-weekly-review'),
+  completeWeeklyReview: (weekStr)=> ipcRenderer.send('complete-weekly-review', weekStr),
+  onShowReviewNudge: (callback) => {
+    const sub = () => callback();
+    ipcRenderer.on('show-review-nudge', sub);
+    return () => ipcRenderer.removeListener('show-review-nudge', sub);
+  },
+  onReviewCompleted: (callback) => {
+    const sub = () => callback();
+    ipcRenderer.on('review-completed', sub);
+    return () => ipcRenderer.removeListener('review-completed', sub);
+  },
+
+  // Weekly Intention
+  getWeeklyIntention: ()         => ipcRenderer.invoke('get-weekly-intention'),
+  saveWeeklyIntention:(intention)=> ipcRenderer.invoke('save-weekly-intention', intention),
+
+  // Onboarding
+  getOnboardingDone:  ()         => ipcRenderer.invoke('get-onboarding-done'),
+  setOnboardingDone:  ()         => ipcRenderer.invoke('set-onboarding-done'),
 });

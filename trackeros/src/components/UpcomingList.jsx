@@ -26,6 +26,7 @@ function UpcomingList({ upcoming }) {
             style={{
               gap: '9px', padding: '5px 8px', borderRadius: '6px',
               cursor: 'default', transition: 'background 0.15s',
+              opacity: block.isMaintenance ? 0.45 : 1, // Passive visual for maintenance blocks
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--acrylic-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}

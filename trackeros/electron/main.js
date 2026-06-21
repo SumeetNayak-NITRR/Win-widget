@@ -23,6 +23,16 @@ function storeSet(key, val) { if (store) store.set(key, val); }
 const DEFAULT_FULL_WIDTH = 268;
 const DEFAULT_FULL_HEIGHT = 580;
 
+function getISOWeek(d) {
+  const date = new Date(d);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return `${date.getFullYear()}-W${String(1 + Math.round(
+    ((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7
+  )).padStart(2, '0')}`;
+}
+
 function setMiniMode(mini) {
   if (!mainWin || isMini === mini) return;
   isMini = mini;
@@ -277,8 +287,10 @@ function saveLog() {
   const tasksDone  = tasks.filter(t => t.done).length;
   
   const routine = storeGet(`routine_${key}`, []);
-  const blocksTotal = routine.length;
-  const blocksDone = routine.filter(b => b.status === 'done').length;
+  const productiveRoutine = routine.filter(b => !b.isMaintenance);
+  
+  const blocksTotal = productiveRoutine.length;
+  const blocksDone = productiveRoutine.filter(b => b.status === 'done').length;
   
   const categoryTime = {};
   routine.filter(b => b.status === 'done').forEach(b => {
@@ -320,18 +332,24 @@ function registerIPC() {
     let todayTasks = storeGet(`tasks.${date}`);
     if (!todayTasks) {
       todayTasks = [];
-      // Find previous days to migrate undone tasks
+      // Carry forward ONLY goal-linked undone tasks from the most recent previous day
       const allTasks = storeGet('tasks', {});
       const previousDates = Object.keys(allTasks).filter(k => k < date).sort().reverse();
       if (previousDates.length > 0) {
         const lastDate = previousDates[0];
         const lastTasks = allTasks[lastDate] || [];
-        const undone = lastTasks.filter(t => !t.done).map(t => ({
-          ...t,
-          carriedOver: true,
-          carriedFrom: lastDate,
-        }));
-        todayTasks = undone;
+        // Only carry goal-linked tasks that weren't completed
+        const carried = lastTasks
+          .filter(t => !t.done && t.linkedOutcomeId)
+          .map(t => ({
+            ...t,
+            id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            carriedOver: true,
+            carriedFrom: lastDate,
+            createdAt: new Date().toISOString(),
+            completedAt: null,
+          }));
+        todayTasks = carried;
       }
       storeSet(`tasks.${date}`, todayTasks);
     }
@@ -365,7 +383,7 @@ function registerIPC() {
   ipcMain.handle('export-data', async () => {
     if (!mainWin) return false;
     const { filePath } = await dialog.showSaveDialog(mainWin, {
-      title: 'Export TrackerOS Backup',
+      title: 'Export Tracker Backup',
       defaultPath: `tracker_backup_${new Date().toISOString().slice(0,10)}.json`,
       filters: [{ name: 'JSON Backup', extensions: ['json'] }]
     });
@@ -383,7 +401,7 @@ function registerIPC() {
   ipcMain.handle('import-data', async () => {
     if (!mainWin) return false;
     const { filePaths } = await dialog.showOpenDialog(mainWin, {
-      title: 'Import TrackerOS Backup',
+      title: 'Import Tracker Backup',
       filters: [{ name: 'JSON Backup', extensions: ['json'] }],
       properties: ['openFile']
     });
@@ -399,7 +417,7 @@ function registerIPC() {
       const REQUIRED_KEYS = ['settings', 'templates', 'tasks'];
       const hasAllRequired = REQUIRED_KEYS.every(k => k in data);
       if (!hasAllRequired) {
-        return { success: false, error: 'File is missing required TrackerOS fields (settings, templates, tasks). This may not be a valid TrackerOS backup.' };
+        return { success: false, error: 'File is missing required Tracker fields (settings, templates, tasks). This may not be a valid Tracker backup.' };
       }
       if (typeof data.settings !== 'object' || data.settings === null ||
           typeof data.templates !== 'object' || data.templates === null ||
@@ -444,7 +462,26 @@ function registerIPC() {
     saveLog(); // Keep logs in sync
   });
   ipcMain.handle('get-setup-state', () => storeGet('settings.lastSetupDate', null));
-  ipcMain.handle('get-streak', () => storeGet('settings.streak', 0));
+  ipcMain.handle('get-streak', () => {
+    const logs = storeGet('logs', {});
+    let currentStreak = 0;
+    const d = new Date();
+    
+    const todayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (logs[todayKey] && logs[todayKey] > 0) currentStreak++;
+    
+    d.setDate(d.getDate() - 1);
+    while (true) {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (logs[key] && logs[key] > 0) {
+        currentStreak++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return currentStreak;
+  });
   
   ipcMain.handle('get-direction-layer', (_, blockLabel) => {
     const layers = storeGet('directionLayers') || {};
@@ -468,6 +505,32 @@ function registerIPC() {
   // Goals
   ipcMain.handle('get-goals', () => storeGet('goals', []));
   ipcMain.handle('save-goals', (_, g) => { storeSet('goals', g); return true; });
+
+  // Onboarding
+  ipcMain.handle('get-onboarding-done', () => storeGet('settings.onboardingDone', false));
+  ipcMain.handle('set-onboarding-done', () => { storeSet('settings.onboardingDone', true); return true; });
+
+  // Weekly Intention
+  ipcMain.handle('get-weekly-intention', () => storeGet('weeklyIntention', ''));
+  ipcMain.handle('save-weekly-intention', (_, intention) => { storeSet('weeklyIntention', intention); return true; });
+
+  // Review week
+  ipcMain.handle('get-review-week', () => storeGet('settings.reviewWeek', null));
+  ipcMain.handle('set-review-week', (_, week) => { storeSet('settings.reviewWeek', week); return true; });
+
+  // Week activity (last 7 days of logged block activity)
+  ipcMain.handle('get-week-activity', () => {
+    const today = new Date();
+    const allActivity = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const dayActivity = storeGet(`activity.${key}`, []);
+      allActivity.push(...dayActivity);
+    }
+    return allActivity;
+  });
 
   ipcMain.on('set-setup-mode', () => {
     isSetupMode = true;
@@ -509,6 +572,30 @@ function registerIPC() {
     return statsWin;
   }
 
+  let reviewWin = null;
+  function getOrCreateReviewWin() {
+    if (reviewWin) return reviewWin;
+    reviewWin = new BrowserWindow({
+      width: 400,
+      height: 520,
+      frame: false,
+      resizable: false,
+      center: true,
+      alwaysOnTop: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+      },
+    });
+    if (isDev) {
+      reviewWin.loadURL('http://localhost:5173/#/weekly-review');
+    } else {
+      reviewWin.loadFile(path.join(__dirname, '../dist/index.html'), { hash: '/weekly-review' });
+    }
+    reviewWin.on('close', (e) => { e.preventDefault(); reviewWin.hide(); });
+    return reviewWin;
+  }
+
   ipcMain.on('stats-close',  () => statsWin && statsWin.hide());
   ipcMain.on('open-stats',   () => { 
     getOrCreateStatsWin();
@@ -516,10 +603,49 @@ function registerIPC() {
     statsWin.show(); 
     statsWin.focus(); 
     statsWin.webContents.send('stats-refresh'); 
+
+    // Send nudge if due
+    const lastReviewWeek = storeGet('settings.lastReviewWeek', '');
+    const currentWeek = getISOWeek(new Date());
+    const isSundayOrMonday = [0, 1].includes(new Date().getDay());
+    const hasActivity = Object.keys(storeGet('logs', {})).length > 0;
+    if (lastReviewWeek !== currentWeek && isSundayOrMonday && hasActivity) {
+      setTimeout(() => {
+        if (statsWin && !statsWin.isDestroyed()) {
+          statsWin.webContents.send('show-review-nudge');
+        }
+      }, 500); // short delay to ensure React has mounted
+    }
   });
   
   ipcMain.on('widget-expand', () => {
     setMiniMode(false);
+  });
+
+  ipcMain.on('open-weekly-review', () => {
+    getOrCreateReviewWin();
+    reviewWin.show();
+    reviewWin.focus();
+  });
+
+  ipcMain.on('close-weekly-review', () => {
+    if (reviewWin) reviewWin.hide();
+  });
+
+  ipcMain.on('complete-weekly-review', (_, weekStr) => {
+    storeSet('settings.lastReviewWeek', weekStr);
+    if (reviewWin) reviewWin.hide();
+    
+    // Notify stats window to hide banner
+    if (statsWin && !statsWin.isDestroyed()) {
+      statsWin.webContents.send('review-completed');
+    }
+    
+    // Fallback Desktop Notification instead of ntfy
+    new Notification({
+      title: 'Weekly review done ✓',
+      body: `Week ${weekStr} reviewed. New focus set. See you next week.`
+    }).show();
   });
 }
 
@@ -528,33 +654,77 @@ app.whenReady().then(async () => {
   
   const DEFAULT_TEMPLATES = {
     Weekday: [
-      { id: 'r1',  label: 'Morning Run + Stretch',  start: '06:00', end: '06:45', category: 'fitness' },
-      { id: 'r2',  label: 'Breakfast + Oats',        start: '07:00', end: '07:30', category: 'health'  },
-      { id: 'r3',  label: 'DSA Practice · A2Z',      start: '09:00', end: '11:00', category: 'study'   },
-      { id: 'r4',  label: 'Mining Engg. Study',       start: '11:30', end: '13:00', category: 'study'   },
-      { id: 'r5',  label: 'Lunch + Rest',             start: '13:00', end: '14:00', category: 'health'  },
-      { id: 'r6',  label: 'English Communication',    start: '14:30', end: '15:30', category: 'skill'   },
-      { id: 'r7',  label: 'Football Practice',        start: '16:00', end: '17:30', category: 'sport'   },
-      { id: 'r8',  label: 'Evening Cooldown',         start: '17:30', end: '18:00', category: 'fitness' },
-      { id: 'r9',  label: 'Dinner + Downtime',        start: '19:30', end: '20:30', category: 'health'  },
-      { id: 'r10', label: 'LifeOS / Dev Work',        start: '21:00', end: '22:30', category: 'dev'     },
-      { id: 'r11', label: 'Sleep Prep',               start: '23:00', end: '23:30', category: 'health'  },
+      { id: 'r1',  label: 'Morning Routine',   start: '06:00', end: '06:30', category: 'health',  isMaintenance: true },
+      { id: 'r2',  label: 'Exercise',          start: '06:30', end: '07:30', category: 'fitness', isMaintenance: false },
+      { id: 'r3',  label: 'Breakfast',         start: '07:30', end: '08:00', category: 'health',  isMaintenance: true },
+      { id: 'r4',  label: 'Deep Work Block 1', start: '09:00', end: '11:00', category: 'study',   isMaintenance: false },
+      { id: 'r5',  label: 'Short Break',       start: '11:00', end: '11:15', category: 'health',  isMaintenance: true },
+      { id: 'r6',  label: 'Deep Work Block 2', start: '11:15', end: '13:00', category: 'study',   isMaintenance: false },
+      { id: 'r7',  label: 'Lunch',             start: '13:00', end: '13:45', category: 'health',  isMaintenance: true },
+      { id: 'r8',  label: 'Rest',              start: '13:45', end: '14:30', category: 'health',  isMaintenance: true },
+      { id: 'r9',  label: 'Work Block 3',      start: '14:30', end: '16:30', category: 'study',   isMaintenance: false },
+      { id: 'r10', label: 'Sport',             start: '17:00', end: '18:30', category: 'fitness', isMaintenance: false },
+      { id: 'r11', label: 'Personal Time',     start: '18:30', end: '19:30', category: 'skill',   isMaintenance: false },
+      { id: 'r12', label: 'Dinner',            start: '19:30', end: '20:00', category: 'health',  isMaintenance: true },
+      { id: 'r13', label: 'Evening Work',      start: '20:00', end: '22:00', category: 'dev',     isMaintenance: false },
+      { id: 'r14', label: 'Wind Down',         start: '22:30', end: '23:00', category: 'health',  isMaintenance: true },
     ],
     Weekend: [
-      { id: 'w1',  label: 'Late Wakeup + Rest',       start: '08:00', end: '09:30', category: 'health'  },
-      { id: 'w2',  label: 'Heavy Breakfast',          start: '09:30', end: '10:30', category: 'health'  },
+      { id: 'w1',  label: 'Late Wakeup + Rest',       start: '08:00', end: '09:30', category: 'health', isMaintenance: true },
+      { id: 'w2',  label: 'Heavy Breakfast',          start: '09:30', end: '10:30', category: 'health', isMaintenance: true },
       { id: 'w3',  label: 'Weekly Review / Planning', start: '11:00', end: '12:30', category: 'dev'     },
-      { id: 'w4',  label: 'Lunch + Movie',            start: '13:00', end: '15:30', category: 'health'  },
+      { id: 'w4',  label: 'Lunch + Movie',            start: '13:00', end: '15:30', category: 'health', isMaintenance: true },
       { id: 'w5',  label: 'Football / Outdoor',       start: '16:00', end: '18:00', category: 'sport'   },
-      { id: 'w6',  label: 'Dinner Out',               start: '19:30', end: '21:30', category: 'health'  },
-      { id: 'w7',  label: 'Downtime',                 start: '22:00', end: '23:30', category: 'health'  },
+      { id: 'w6',  label: 'Dinner Out',               start: '19:30', end: '21:30', category: 'health', isMaintenance: true },
+      { id: 'w7',  label: 'Downtime',                 start: '22:00', end: '23:30', category: 'health', isMaintenance: true },
     ],
     Other: []
   };
 
+  const DEFAULT_GOALS = [
+    {
+      id: 'g_northstar_1',
+      type: 'northstar',
+      label: 'Build My Career',
+      icon: '🎯',
+      color: '#4d8eff'
+    },
+    {
+      id: 'g_outcome_1',
+      type: 'outcome',
+      parentId: 'g_northstar_1',
+      label: 'Portfolio Projects',
+      valueType: 'numeric',
+      trackType: 'count',
+      targetValue: '5',
+      currentValue: '1',
+      unit: 'projects',
+      direction: 'increase',
+      color: '#22c55e'
+    },
+    {
+      id: 'g_outcome_2',
+      type: 'outcome',
+      parentId: 'g_northstar_1',
+      label: 'Stay Consistent with Learning',
+      notes: 'Complete at least one learning block daily',
+      valueType: 'boolean',
+      color: '#f59e0b'
+    },
+    {
+      id: 'g_focus_1',
+      type: 'focus',
+      parentId: 'g_outcome_2',
+      label: 'Learn one new skill this month',
+      trackType: 'boolean',
+      done: false
+    }
+  ];
+
   store = new Store({
     defaults: {
       templates: DEFAULT_TEMPLATES,
+      goals: DEFAULT_GOALS,
       tasks: {},
       logs: {},
       settings: { hotkey: 'Ctrl+Shift+W', windowX: null, windowY: null, lastSetupDate: null, openAtLogin: true, soundAlerts: true },
@@ -572,6 +742,12 @@ app.whenReady().then(async () => {
       ]
     },
   });
+
+  if (!storeGet('init_v1.0.3_defaults')) {
+    storeSet('templates', DEFAULT_TEMPLATES);
+    storeSet('goals', DEFAULT_GOALS);
+    storeSet('init_v1.0.3_defaults', true);
+  }
 
   const openAtLogin = storeGet('settings.openAtLogin', true);
   app.setLoginItemSettings({
@@ -599,6 +775,19 @@ app.whenReady().then(async () => {
   const activeHotkey = storeGet('settings.hotkey', 'Ctrl+Shift+W');
   registerGlobalHotkey(activeHotkey);
 
+  const lastReviewWeek = storeGet('settings.lastReviewWeek', '');
+  const currentWeek = getISOWeek(new Date());
+  const isSundayOrMonday = [0, 1].includes(new Date().getDay());
+  const hasActivity = Object.keys(storeGet('logs', {})).length > 0;
+
+  if (lastReviewWeek !== currentWeek && isSundayOrMonday && hasActivity) {
+    setTimeout(() => {
+      if (statsWin && !statsWin.isDestroyed()) {
+        statsWin.webContents.send('show-review-nudge');
+      }
+    }, 2000);
+  }
+
   let lastDate = new Date().getDate();
   let lastNotifiedBlock = null;
   let lastNotifiedWarning = null;
@@ -620,7 +809,7 @@ app.whenReady().then(async () => {
     if (current) {
       if (lastNotifiedBlock !== current.id) {
         if (Notification.isSupported()) {
-          new Notification({ title: 'TrackerOS', body: `Now starting: ${current.label}`, silent: false }).show();
+          new Notification({ title: 'Tracker', body: `Now starting: ${current.label}`, silent: false }).show();
         }
         lastNotifiedBlock = current.id;
       }
@@ -629,7 +818,7 @@ app.whenReady().then(async () => {
       const endMin = he * 60 + me;
       if (endMin - nm === 5 && lastNotifiedWarning !== current.id) {
         if (Notification.isSupported()) {
-          new Notification({ title: 'TrackerOS', body: `5 minutes left in ${current.label}`, silent: true }).show();
+          new Notification({ title: 'Tracker', body: `5 minutes left in ${current.label}`, silent: true }).show();
         }
         lastNotifiedWarning = current.id;
       }

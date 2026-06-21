@@ -125,8 +125,9 @@ function GoalForm({ type, parentId, onSave, onCancel }) {
   );
 }
 
-export default function GoalManager({ goals, setGoals }) {
+export default function GoalManager({ goals, setGoals, tasks = [], onToggleTask, onAddTask }) {
   const [adding, setAdding] = useState(null);
+  const [taskInputs, setTaskInputs] = useState({}); // outcomeId → input text
 
   const addGoal = (goal) => {
     setGoals([...goals, goal]);
@@ -202,7 +203,7 @@ export default function GoalManager({ goals, setGoals }) {
                     <div style={{ marginTop: '12px', paddingLeft: '12px', borderLeft: '2px solid rgba(77,142,255,0.3)' }}>
                       <div className="flex justify-between items-center mb-2">
                         <span style={{ fontSize: '9px', color: '#888', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: '600' }}>FOCUS AREAS / TO-DO</span>
-                        <button onClick={() => setAdding({ type: 'focus', parentId: out.id })} style={{ background: 'none', border: 'none', color: '#4d8eff', fontSize: '10px', cursor: 'pointer', fontWeight: '500' }} className="hover:text-[#6fa3ff] transition-colors">+ Add</button>
+                        <button onClick={() => setAdding({ type: 'focus', parentId: out.id })} style={{ background: 'none', border: 'none', color: '#4d8eff', fontSize: '10px', cursor: 'pointer', fontWeight: '500' }} className="hover:text-[#6fa3ff] transition-colors">+ Add Focus</button>
                       </div>
                       {adding && adding.parentId === out.id && adding.type === 'focus' && (
                         <GoalForm type="focus" parentId={out.id} onSave={addGoal} onCancel={() => setAdding(null)} />
@@ -216,7 +217,7 @@ export default function GoalManager({ goals, setGoals }) {
                               {foc.done && <span style={{ color: '#4d8eff', fontSize: '14px' }}>✓</span>}
                               <span style={{ textDecoration: foc.done ? 'line-through' : 'none', color: foc.done ? '#666' : '#ccc' }}>{foc.label}</span>
                               {due && !foc.done && (
-                                <span style={{ fontSize: '9px', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', color: due.color, marginLeft: '4px' }}>
+                                <span title={`Due: ${foc.dueDate}`} style={{ fontSize: '9px', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', color: due.color, marginLeft: '4px', cursor: 'help' }}>
                                   {due.text}
                                 </span>
                               )}
@@ -225,6 +226,51 @@ export default function GoalManager({ goals, setGoals }) {
                           </div>
                         )})}
                       </div>
+
+                      {/* Goal-linked tasks for this outcome */}
+                      {(() => {
+                        const outcomeTasks = tasks.filter(t => t.linkedOutcomeId === out.id);
+                        return outcomeTasks.length > 0 || onAddTask ? (
+                          <div className="mt-3">
+                            <div className="text-[9px] uppercase tracking-widest font-mono text-[#555] mb-1.5">Today's Tasks</div>
+                            <div className="flex flex-col gap-1">
+                              {outcomeTasks.map(task => (
+                                <div key={task.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] group">
+                                  <button
+                                    onClick={() => onToggleTask?.(task.id)}
+                                    className={`w-3.5 h-3.5 rounded-[3px] flex-shrink-0 flex items-center justify-center transition-all
+                                      ${task.done ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.3)]' : 'border border-[rgba(255,255,255,0.25)] bg-white/5'}
+                                    `}
+                                  >
+                                    {task.done && <span className="text-[8px] text-black font-bold">✓</span>}
+                                  </button>
+                                  <span className={`text-[11px] flex-1 ${task.done ? 'line-through text-[#555]' : 'text-[#ccc]'}`}>{task.text}</span>
+                                  {task.carriedOver && !task.done && (
+                                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[rgba(245,158,11,0.12)] text-[#f59e0b] border border-[rgba(245,158,11,0.2)] flex-shrink-0">↩ due</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {/* Inline add task */}
+                            <div className="flex items-center gap-2 mt-1.5 px-2 py-1.5 rounded-md border border-dashed border-[rgba(255,255,255,0.08)] hover:border-[rgba(77,142,255,0.3)] transition-colors">
+                              <span className="text-[10px] text-[#555]">+</span>
+                              <input
+                                type="text"
+                                value={taskInputs[out.id] || ''}
+                                onChange={e => setTaskInputs(prev => ({ ...prev, [out.id]: e.target.value }))}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && taskInputs[out.id]?.trim()) {
+                                    onAddTask?.(taskInputs[out.id].trim(), out.id);
+                                    setTaskInputs(prev => ({ ...prev, [out.id]: '' }));
+                                  }
+                                }}
+                                placeholder="Add task for today... (Enter)"
+                                className="flex-1 bg-transparent text-[11px] text-[#aaa] outline-none placeholder:text-[#444]"
+                              />
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 ))}

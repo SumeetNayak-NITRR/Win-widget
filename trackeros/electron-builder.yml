@@ -1,5 +1,5 @@
 appId: com.sumeet.trackeros
-productName: TrackerOS
+productName: Tracker
 directories:
   buildResources: assets
   output: release
